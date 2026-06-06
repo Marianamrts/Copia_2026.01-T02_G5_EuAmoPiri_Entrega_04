@@ -1,0 +1,36 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+//tabela de locais
+model Place{
+
+  id  Int   @id @default(autoincrement())
+  name  String
+  category String
+  description String
+  createdAt DateTime @default(now())
+  experiences Experiences []
+
+}
+
+model Experiences {
+
+  id  Int @id @default(autoincrement())
+  userName  String
+  rating  Int           // Avaliação de 0 a 5
+  createdAt DateTime @default(now()) 
+  placeId Int           // Chave estrangeira de Place
+  place Place @relation(fields: [placeId], references: [id], onDelete: Cascade)
+
+}

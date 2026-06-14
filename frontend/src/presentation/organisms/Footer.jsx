@@ -16,9 +16,6 @@ export default function Footer() {
         <p className={styles.brand}>
           <span className={styles.heart}>♥</span> Eu Amo Piri
         </p>
-        <p className={styles.credits}>
-          Projeto acadêmico — UnB Arquitetura e Desenho de Software {year} · Grupo 05
-        </p>
         <nav className={styles.links} aria-label="Links do rodapé">
           <Link to="/sobre-piri" className={styles.link}>Sobre Piri</Link>
           <a

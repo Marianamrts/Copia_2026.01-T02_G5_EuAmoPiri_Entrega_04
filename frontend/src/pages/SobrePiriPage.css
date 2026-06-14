@@ -1,13 +1,13 @@
 /* Configurações Gerais da Página */
-.container-page {
-  background-color: #f7f5f0; /* Fundo bege do protótipo */
+.sobre-piri-container {
+  background-color: #f5f2eb; /* Fundo bege suave */
   min-height: 100vh;
-  padding: 20px;
+  padding: 30px;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   color: #333;
+  box-sizing: border-box;
 }
 
-/* Header estilizado */
 .header-piri {
   background-color: #ffffff;
   display: flex;
@@ -15,109 +15,141 @@
   align-items: center;
   padding: 15px 30px;
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
   margin-bottom: 25px;
 }
 
 .logo {
   font-weight: bold;
   font-size: 1.2rem;
-  color: #6e4a3b; /* Tom de marrom do texto */
+  color: #6e4a3b; /* Marrom escuro */
 }
 
 .btn-amopiri {
-  background: #ffffff; /* Fundo branco */
-  color: #6e4a3b;        /* Texto marrom do projeto */
-  border: 1px solid #6e4a3b; /* Borda fina marrom para dar acabamento */
-  padding: 6px 12px;
+  background: #f5f2eb;
+  color: #050505;
+  border: 0px;
+  padding: 6px 16px;
   border-radius: 6px;
   cursor: pointer;
   font-size: 0.85rem;
-  transition: all 0.2s; /* Suaviza a transição de todas as propriedades no hover */
+  transition: all 0.2s;
+  
+  box-shadow: 0px 4px 12px rgba(110, 74, 59, 0.12);
 }
 
-/* Cards Gerais */
-.card-principal, .card-secundario {
+.btn-amopiri:hover {
+  background: #e8e5de; 
+  box-shadow: 0px 6px 16px rgba(110, 74, 59, 0.18); 
+}
+
+.card-box {
   background-color: #ffffff;
   border-radius: 16px;
-  padding: 30px;
+  padding: 35px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.03);
   margin-bottom: 25px;
+  box-sizing: border-box;
 }
 
-/* Títulos em Marrom */
-.card-principal h2, .card-secundario h2 {
-  color: #8c583e;
+/* Títulos dos blocos */
+.card-box h2 {
+  color: #8c583e; 
   margin-top: 0;
   font-size: 1.4rem;
+  font-weight: bold;
+
+  text-shadow: 2px 2px 2px rgba(110, 74, 59, 0.15);
+
 }
 
-.card-principal p, .card-secundario p {
+.card-box p {
   color: #666;
   line-height: 1.6;
   font-size: 0.95rem;
   text-align: justify;
 }
 
-/* Layout do Card de Cima (Texto na esquerda, Fotos na direita) */
-.card-principal {
+.card-horizontal {
   display: flex;
-  gap: 30px;
+  gap: 40px;
   align-items: center;
 }
 
-.conteudo-texto {
-  flex: 1;
+.conteudo-texto h2 {
+  font-family: 'Inter', sans-serif;
+  color: #8c583e; 
+  margin-top: 0;
+  font-size: 1.4rem;
+  font-weight: 700;
+  text-shadow: 2px 2px 4px rgba(110, 74, 59, 0.15);
+}
+
+.conteudo-texto p {
+  font-family: 'Inter', sans-serif;
+  color: #666;
+  line-height: 1.6;
+  font-size: 0.95rem;
+  text-align: justify;
+  font-weight: 400; /* Peso normal para o bloco de texto */
 }
 
 .galeria-fotos-principal {
   display: flex;
   gap: 15px;
   align-items: center;
+  justify-content: center; 
 }
 
-/* Estilo das Imagens com a bordinha verde do protótipo */
-.foto-arredondada {
+/*Deixando as duas imagens com tamanho igual*/
+.galeria-fotos-principal .foto-piri {
+  width: 200px;        
+  height: 150px;       
+  object-fit: cover;    
+  border-radius: 12px;
+  border: 2px solid #a3b899;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.05);
+}
+
+.grid-inferior {
+  display: grid;
+  grid-template-columns: 1fr 1fr; 
+  gap: 25px;
+}
+
+/* Deixando as duas imagens lado a lado*/
+.fotos-lado-a-lado {
+  display: flex;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.foto-piri {
   border-radius: 12px;
   object-fit: cover;
   border: 2px solid #a3b899; 
 }
 
+/* Ajustes finos de tamanho para bater com a imagem */
 .foto-vertical {
   height: 230px;
-  width: 180px;
+  width: 170px;
 }
 
-/* Grid com os dois cards inferiores posicionados lado a lado */
-.grid-inferior {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 25px;
+.fotos-lado-a-lado .foto-piri {
+  width: 50%; /* Faz as duas fotos ocuparem metade do espaço interno cada */
+  height: 140px;
 }
 
-/* Alinhamento das fotos de baixo */
-.fotos-lado-a-lado {
-  display: flex;
-  gap: 15px;
-  margin-top: 20px;
-  justify-content: flex-start;
-}
-
-.fotos-lado-a-lado .foto-arredondada {
-  width: 180px;
-  height: 120px;
-}
-
-/* Responsividade para telas menores / Celular */
 @media (max-width: 900px) {
-  .card-principal {
+  .card-horizontal {
     flex-direction: column;
   }
   .grid-inferior {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr; 
   }
   .galeria-fotos-principal, .fotos-lado-a-lado {
-    flex-wrap: wrap;
+    width: 100%;
     justify-content: center;
   }
 }

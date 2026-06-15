@@ -1,0 +1,50 @@
+/* ============================================================
+   ORGANISMO — ExperienceForm
+   ============================================================ */
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+  margin: 0;
+}
+
+/* ── Campo de estrelas ── */
+.ratingField {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.ratingLabel {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+}
+
+.fieldError {
+  font-size: var(--font-size-xs);
+  color: var(--color-error);
+}
+
+.submitError {
+  font-size: var(--font-size-sm);
+  color: var(--color-error);
+  background: #FFEBEE;
+  border: 1px solid #FFCDD2;
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  margin: 0;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+}

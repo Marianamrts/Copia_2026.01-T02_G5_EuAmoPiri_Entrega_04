@@ -1,0 +1,8 @@
+.page { min-height: 60vh; background: var(--color-bg-page); padding: var(--space-8) var(--space-6); }
+.container { max-width: 640px; margin: 0 auto; display: flex; flex-direction: column; gap: var(--space-5); }
+.breadcrumb { font-size: var(--font-size-sm); }
+.back { color: var(--color-primary); text-decoration: none; }
+.back:hover { text-decoration: underline; }
+.title { font-size: var(--font-size-2xl); font-weight: var(--font-weight-bold); color: var(--color-text); margin: 0; }
+.formCard { background: var(--color-bg-card); border-radius: var(--radius-lg); padding: var(--space-6); box-shadow: var(--shadow-sm); }
+@media (max-width: 600px) { .page { padding: var(--space-5) var(--space-4); } }

@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 import piriImagem1 from '../assets/piriimagem1.png';
 import piriImagem2 from '../assets/piriimagem2.png';
 import piriImagem3 from '../assets/piriimagem3.png';
@@ -6,15 +8,42 @@ import piriImagem5 from '../assets/piriimagem5.png';
 import piriImagem6 from '../assets/piriimagem6.png';
 import styles from './SobrePiriPage.module.css';
 
+const SECOES = ['origem', 'historia', 'atualidade'];
+const SECAO_LABELS = { origem: 'Origem', historia: 'História', atualidade: 'Atualidade' };
+
 export default function SobrePiriPage() {
+  const [secaoAtiva, setSecaoAtiva] = useState('origem');
+  const idx = SECOES.indexOf(secaoAtiva);
+
   return (
     <div className={styles.page}>
+
+      <nav className={styles.tabs} aria-label="Seções sobre Pirenópolis">
+        {SECOES.map((s) => (
+          <button
+            key={s}
+            className={[styles.tab, secaoAtiva === s ? styles.tabAtiva : ''].join(' ')}
+            onClick={() => setSecaoAtiva(s)}
+            aria-current={secaoAtiva === s ? 'page' : undefined}
+          >
+            {SECAO_LABELS[s]}
+          </button>
+        ))}
+      </nav>
+
       <div className={styles.container}>
 
-        {/* Seção principal — horizontal no desktop */}
-        <section className={styles.cardHorizontal} aria-labelledby="origem-titulo">
+        <section
+          className={[
+            styles.cardHorizontal,
+            secaoAtiva !== 'origem' ? styles.secaoOculta : '',
+          ].join(' ')}
+          aria-labelledby="origem-titulo"
+        >
           <div className={styles.texto}>
-            <h2 id="origem-titulo" className={styles.titulo}>Origem da cidade de Pirenópolis</h2>
+            <h2 id="origem-titulo" className={styles.titulo}>
+              Origem da cidade de Pirenópolis
+            </h2>
             <p className={styles.paragrafo}>
               Pirenópolis foi fundada em 1727, durante o ciclo do ouro, quando bandeirantes
               chegaram à região em busca de riquezas minerais. O local ficou conhecido como
@@ -27,15 +56,20 @@ export default function SobrePiriPage() {
             </p>
           </div>
           <div className={styles.galeria}>
-            <img src={piriImagem1} alt="Casario histórico de Pirenópolis" className={styles.fotoA} />
-            <img src={piriImagem2} alt="Casario histórico de Pirenópolis" className={styles.fotoB} />
+            <img src={piriImagem1} alt="Casarão histórico de Pirenópolis" className={styles.fotoA} />
+            <img src={piriImagem2} alt="Casarão histórico de Pirenópolis" className={styles.fotoB} />
           </div>
         </section>
 
-        {/* Grade inferior — dois cards lado a lado no desktop */}
         <div className={styles.grid}>
 
-          <section className={styles.card} aria-labelledby="historia-titulo">
+          <section
+            className={[
+              styles.card,
+              secaoAtiva !== 'historia' ? styles.secaoOculta : '',
+            ].join(' ')}
+            aria-labelledby="historia-titulo"
+          >
             <h2 id="historia-titulo" className={styles.titulo}>História</h2>
             <p className={styles.paragrafo}>
               Com o esgotamento do ouro, no final do século XVIII, a cidade passou por uma
@@ -45,11 +79,17 @@ export default function SobrePiriPage() {
             </p>
             <div className={styles.fotosLadoALado}>
               <img src={piriImagem3} alt="Igreja Matriz de Pirenópolis" className={styles.fotoGrid} />
-              <img src={piriImagem4} alt="Rua histórica de Pirenópolis" className={`${styles.fotoGrid} ${styles.fotoGridOffset}`} />
+              <img src={piriImagem4} alt="Rua histórica de Pirenópolis" className={[styles.fotoGrid, styles.fotoGridOffset].join(' ')} />
             </div>
           </section>
 
-          <section className={styles.card} aria-labelledby="atualidade-titulo">
+          <section
+            className={[
+              styles.card,
+              secaoAtiva !== 'atualidade' ? styles.secaoOculta : '',
+            ].join(' ')}
+            aria-labelledby="atualidade-titulo"
+          >
             <h2 id="atualidade-titulo" className={styles.titulo}>Atualidade</h2>
             <p className={styles.paragrafo}>
               Atualmente, Pirenópolis é um dos destinos turísticos mais procurados de Goiás.
@@ -59,11 +99,34 @@ export default function SobrePiriPage() {
             </p>
             <div className={styles.fotosLadoALado}>
               <img src={piriImagem5} alt="Cachoeira em Pirenópolis" className={styles.fotoGrid} />
-              <img src={piriImagem6} alt="Cavalhadas de Pirenópolis" className={`${styles.fotoGrid} ${styles.fotoGridOffset}`} />
+              <img src={piriImagem6} alt="Cavalhadas de Pirenópolis" className={[styles.fotoGrid, styles.fotoGridOffset].join(' ')} />
             </div>
           </section>
 
         </div>
+
+        <div className={styles.navBotoes}>
+          <button
+            className={styles.navBtn}
+            onClick={() => setSecaoAtiva(SECOES[idx - 1])}
+            disabled={idx === 0}
+            aria-label="Seção anterior"
+          >
+            Anterior
+          </button>
+          <span className={styles.navIndicador}>
+            {idx + 1} / {SECOES.length}
+          </span>
+          <button
+            className={styles.navBtn}
+            onClick={() => setSecaoAtiva(SECOES[idx + 1])}
+            disabled={idx === SECOES.length - 1}
+            aria-label="Próxima seção"
+          >
+            Próximo
+          </button>
+        </div>
+
       </div>
     </div>
   );

@@ -1,8 +1,3 @@
-/* ============================================================
-   ORGANISMO — Header
-   Mobile-first
-   ============================================================ */
-
 .header {
   position: sticky;
   top: 0;
@@ -41,7 +36,7 @@
   font-family: var(--font-family);
   font-size: var(--font-size-md);
   font-weight: var(--font-weight-bold);
-  color: var(--color-green-primary);
+  color: var(--color-brown);
 }
 
 /* --- Nav desktop (oculta no mobile) --- */
@@ -129,9 +124,7 @@
   border-bottom-color: var(--color-primary);
 }
 
-/* ============================================================
-   Desktop (≥ 768px)
-   ============================================================ */
+/*Desktop (≥ 768px)*/
 @media (min-width: 768px) {
   .inner {
     padding: 0 var(--space-6);

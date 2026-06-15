@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
+import { MemoryRouter } from 'react-router-dom'
 
 // Mocks de imagens (assets retornam string em testes)
 vi.mock('../assets/piriimagem1.png', () => ({ default: 'piriimagem1.png' }))
@@ -11,26 +12,29 @@ vi.mock('../assets/piriimagem6.png', () => ({ default: 'piriimagem6.png' }))
 
 import SobrePiriPage from './SobrePiriPage'
 
+const renderPage = () =>
+  render(<MemoryRouter><SobrePiriPage /></MemoryRouter>)
+
 describe('SobrePiriPage — RF14', () => {
   it('renderiza o título da seção Origem', () => {
-    render(<SobrePiriPage />)
+    renderPage()
     expect(
       screen.getByText(/origem da cidade de pirenópolis/i)
     ).toBeInTheDocument()
   })
 
   it('renderiza a seção História com aria-labelledby', () => {
-    render(<SobrePiriPage />)
+    renderPage()
     expect(screen.getByRole('region', { name: /história/i })).toBeInTheDocument()
   })
 
   it('renderiza a seção Atualidade com aria-labelledby', () => {
-    render(<SobrePiriPage />)
+    renderPage()
     expect(screen.getByRole('region', { name: /atualidade/i })).toBeInTheDocument()
   })
 
   it('todas as imagens têm atributo alt não vazio', () => {
-    render(<SobrePiriPage />)
+    renderPage()
     const images = screen.getAllByRole('img')
     expect(images.length).toBeGreaterThanOrEqual(4)
     images.forEach((img) => {
@@ -40,12 +44,12 @@ describe('SobrePiriPage — RF14', () => {
   })
 
   it('conteúdo menciona o ano de fundação 1727', () => {
-    render(<SobrePiriPage />)
+    renderPage()
     expect(screen.getByText(/1727/)).toBeInTheDocument()
   })
 
   it('conteúdo menciona o nome Pirenópolis', () => {
-    render(<SobrePiriPage />)
+    renderPage()
     const matches = screen.getAllByText(/pirenópolis/i)
     expect(matches.length).toBeGreaterThan(0)
   })

@@ -1,6 +1,3 @@
-/**
- * ORGANISMO — Header
- */
 import { useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { MdMenu, MdClose, MdPerson } from 'react-icons/md';
@@ -27,14 +24,16 @@ export default function Header() {
   return (
     <header className={styles.header}>
       <div className={styles.inner}>
+        {/* Logo */}
         <Link to="/" className={styles.logo} aria-label="Eu Amo Piri — página inicial">
-          <span className={styles.logoHeart}>&#10084;&#65038;</span>
+          <span className={styles.logoHeart}>❤︎</span>
           <span className={styles.logoText}>Eu Amo Piri</span>
         </Link>
 
+        {/* Navegação desktop */}
         <nav className={styles.nav} aria-label="Navegação principal">
+          <NavLink to="/" className={navLinkClass} end>Sobre Piri</NavLink>
           <NavLink to="/locais" className={navLinkClass}>Locais</NavLink>
-          <NavLink to="/sobre-piri" className={navLinkClass}>Sobre Piri</NavLink>
           {isAuthenticated && (
             <NavLink
               to={isMorador ? '/morador/painel' : '/turista/painel'}
@@ -45,6 +44,7 @@ export default function Header() {
           )}
         </nav>
 
+        {/* Ações desktop */}
         <div className={styles.actions}>
           {isAuthenticated ? (
             <>
@@ -67,6 +67,7 @@ export default function Header() {
           )}
         </div>
 
+        {/* Botão hambúrguer (mobile) */}
         <button
           className={styles.menuBtn}
           aria-label={menuOpen ? 'Fechar menu' : 'Abrir menu'}
@@ -78,17 +79,18 @@ export default function Header() {
         </button>
       </div>
 
+      {/* Menu mobile */}
       {menuOpen && (
         <nav
           id="mobile-menu"
           className={styles.mobileMenu}
           aria-label="Menu mobile"
         >
+          <NavLink to="/" className={navLinkClass} end onClick={() => setMenuOpen(false)}>
+            Sobre Piri
+          </NavLink>
           <NavLink to="/locais" className={navLinkClass} onClick={() => setMenuOpen(false)}>
             Locais
-          </NavLink>
-          <NavLink to="/sobre-piri" className={navLinkClass} onClick={() => setMenuOpen(false)}>
-            Sobre Piri
           </NavLink>
           {isAuthenticated && (
             <NavLink

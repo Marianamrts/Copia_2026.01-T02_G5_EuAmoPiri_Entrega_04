@@ -4,23 +4,48 @@ import './LoginPage.css';
 export default function LoginPage() {
   return (
     <div className="login-container">
-    
+      
+      {/* Caixa branca centralizada */}
       <div className="login-card">
         
+        {/* Logo e Boas-vindas */}
         <div className="login-header">
           <h1 className="login-logo">❤ EuAmoPiri</h1>
-          <p className="login-subtitle"></p>
+          <p className="login-subtitle">Bem-vindo de volta!</p>
         </div>
 
+        {/* Formulário de Login */}
         <form className="login-form" onSubmit={(e) => e.preventDefault()}>
           
+          <div className="input-group">
+            <label htmlFor="email">EMAIL</label>
+            <input 
+              type="email" 
+              id="email" 
+              placeholder="seu@email.com" 
+              required 
+            />
+          </div>
+
+          <div className="input-group">
+            <label htmlFor="senha">SENHA</label>
+            <input 
+              type="password" 
+              id="senha" 
+              placeholder="********" 
+              required 
+            />
+          </div>
+
+          {/* Botão Principal Verde */}
           <button type="submit" className="btn-entrar">
             Entrar
           </button>
 
+          {/* Botão do Google */}
           <button type="button" className="btn-google">
             <img 
-              src=""
+              src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_\"
               alt="Google" 
               className="google-icon"
             />
@@ -29,6 +54,7 @@ export default function LoginPage() {
 
         </form>
 
+        {/* Links de Rodapé */}
         <div className="login-footer">
           <a href="#esqueci" className="link-footer">Esqueci a senha</a>
           <a href="#criar" className="link-footer">Criar conta</a>

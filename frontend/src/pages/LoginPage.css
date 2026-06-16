@@ -5,7 +5,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%);
+  background: linear-gradient(135deg, #444f41 0%, #6e4a3b 100%);
   font-family: 'Inter', sans-serif;
   margin: 0;
   box-sizing: border-box;
@@ -14,7 +14,7 @@
 .login-card {
   background-color: #ffffff;
   width: 80%;
-  max-width: 150px; 
+  max-width: 400px; 
 
   padding: 25px 30px;
   
@@ -44,6 +44,71 @@
   margin: 0;
 }
 
+/* Formulário e Inputs */
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.input-group label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #333333;
+  letter-spacing: 0.5px;
+}
+
+.input-group input {
+  padding: 12px 14px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  color: #333;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+/* Botão Entrar Verde */
+.btn-entrar {
+  background-color: #68852a; /* Tom de verde oliva do botão */
+  color: #ffffff;
+  border: none;
+  padding: 14px;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  margin-top: 5px;
+}
+
+.btn-entrar:hover {
+  background-color: #556e22;
+}
+
+/* Botão Continuar com o Google */
+.btn-google {
+  background-color: #ffffff;
+  color: #555555;
+  border: 1px solid #e0e0e0;
+  padding: 12px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: background-color 0.2s;
+}
+
 .btn-google:hover {
   background-color: #f9f9f9;
 }
@@ -51,4 +116,24 @@
 .google-icon {
   width: 18px;
   height: 18px;
+}
+
+/* Links do Rodapé */
+.login-footer {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 25px;
+}
+
+.link-footer {
+  color: #68852a; 
+  font-size: 0.8rem;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.link-footer:hover {
+  color: #6e4a3b; /* Muda para marrom ao passar o mouse */
+  text-decoration: underline;
 }

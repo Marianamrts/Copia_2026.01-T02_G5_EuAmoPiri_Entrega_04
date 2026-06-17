@@ -7,10 +7,32 @@ vi.mock('../context/AuthContext', () => ({
   useAuth: vi.fn(),
 }))
 
+vi.mock('../presentation/atoms/StarRating', () => ({
+  default: ({ value }) => <span data-testid="star-rating">{value} estrelas</span>,
+}))
+
+vi.mock('../infra/adaptor/placeAdaptor', () => ({
+  deletePlace: vi.fn(),
+}))
+vi.mock('../infra/adaptor/experienceAdaptor', () => ({
+  fetchMyExperiences: vi.fn(),
+  deleteExperience: vi.fn(),
+}))
+
 import ProfilePage from './ProfilePage'
 import * as AuthContext from '../context/AuthContext'
+import * as placeAdaptor from '../infra/adaptor/placeAdaptor'
+import * as experienceAdaptor from '../infra/adaptor/experienceAdaptor'
 
-const mockUser = {
+/* ── setup global de mocks de adaptor ── */
+beforeEach(() => {
+  vi.mocked(experienceAdaptor.fetchMyExperiences).mockResolvedValue([])
+  vi.mocked(placeAdaptor.deletePlace).mockResolvedValue(undefined)
+  vi.mocked(experienceAdaptor.deleteExperience).mockResolvedValue(undefined)
+})
+
+/* ── fixtures ── */
+const mockMorador = {
   id: 1,
   name: 'Anna Brandão',
   email: 'anna@piri.com',
@@ -22,25 +44,52 @@ const mockUser = {
   avatarUrl: null,
 }
 
+const mockTurista = {
+  id: 2,
+  name: 'Carlos Turista',
+  email: 'carlos@piri.com',
+  role: 'turista',
+  profession: 'Fotógrafo',
+  avatarUrl: null,
+}
+
 const renderPage = () =>
   render(<MemoryRouter><ProfilePage /></MemoryRouter>)
 
-describe('ProfilePage — RF03', () => {
-  beforeEach(() => {
-    vi.mocked(AuthContext.useAuth).mockReturnValue({
-      user: mockUser,
-      updateProfile: vi.fn().mockResolvedValue(mockUser),
-      isAuthenticated: true,
-      isMorador: true,
-    })
+/* ── helpers para setar role ── */
+function asMorador(extra = {}) {
+  vi.mocked(AuthContext.useAuth).mockReturnValue({
+    user: mockMorador,
+    updateProfile: vi.fn().mockResolvedValue(mockMorador),
+    isAuthenticated: true,
+    isMorador: true,
+    ...extra,
+  })
+}
+
+function asTurista(extra = {}) {
+  vi.mocked(AuthContext.useAuth).mockReturnValue({
+    user: mockTurista,
+    updateProfile: vi.fn().mockResolvedValue(mockTurista),
+    isAuthenticated: true,
+    isMorador: false,
+    ...extra,
   })
 
-  it('exibe nome do usuário em modo leitura', () => {
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Modo leitura — dados básicos
+   ══════════════════════════════════════════════════════════════ */
+describe('ProfilePage — modo leitura', () => {
+  beforeEach(() => asMorador())
+
+  it('exibe nome do usuário', () => {
     renderPage()
     expect(screen.getByText('Anna Brandão')).toBeInTheDocument()
   })
 
-  it('exibe email do usuário em modo leitura', () => {
+  it('exibe email do usuário', () => {
     renderPage()
     expect(screen.getByText('anna@piri.com')).toBeInTheDocument()
   })
@@ -55,14 +104,45 @@ describe('ProfilePage — RF03', () => {
     expect(screen.getByText('Morador')).toBeInTheDocument()
   })
 
-  it('exibe botão "Editar Perfil"', () => {
+  it('exibe aviso quando usuário não está logado', () => {
+    vi.mocked(AuthContext.useAuth).mockReturnValue({
+      user: null,
+      updateProfile: vi.fn(),
+      isAuthenticated: false,
+      isMorador: false,
+    })
     renderPage()
-    expect(
-      screen.getByRole('button', { name: /editar perfil/i })
-    ).toBeInTheDocument()
+    expect(screen.getByText(/precisa estar logado/i)).toBeInTheDocument()
+  })
+})
+
+/* ══════════════════════════════════════════════════════════════
+   Botões de ação — presença e roteamento por role
+   ══════════════════════════════════════════════════════════════ */
+describe('ProfilePage — botões de ação', () => {
+  it('exibe "Deletar Perfil", "Editar Perfil" e "Cadastrar Novo Local" para morador', () => {
+    asMorador()
+    renderPage()
+    expect(screen.getByRole('button', { name: /deletar perfil/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /editar perfil/i })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /cadastrar novo local/i })).toBeInTheDocument()
   })
 
-  it('exibe formulário de edição ao clicar em "Editar Perfil"', async () => {
+  it('exibe "Cadastrar Novo Relato" para turista (não "Cadastrar Novo Local")', () => {
+    asTurista()
+    renderPage()
+    expect(screen.getByRole('link', { name: /cadastrar novo relato/i })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /cadastrar novo local/i })).not.toBeInTheDocument()
+  })
+})
+
+/* ══════════════════════════════════════════════════════════════
+   Formulário de edição de perfil
+   ══════════════════════════════════════════════════════════════ */
+describe('ProfilePage — edição de perfil', () => {
+  beforeEach(() => asMorador())
+
+  it('abre formulário ao clicar em "Editar Perfil"', async () => {
     const user = userEvent.setup()
     renderPage()
     await user.click(screen.getByRole('button', { name: /editar perfil/i }))
@@ -72,7 +152,7 @@ describe('ProfilePage — RF03', () => {
     expect(screen.getByLabelText(/biografia/i)).toBeInTheDocument()
   })
 
-  it('pré-preenche campos com dados atuais ao entrar em edição', async () => {
+  it('pré-preenche campos com dados atuais', async () => {
     const user = userEvent.setup()
     renderPage()
     await user.click(screen.getByRole('button', { name: /editar perfil/i }))
@@ -80,7 +160,7 @@ describe('ProfilePage — RF03', () => {
     expect(screen.getByLabelText(/e-mail/i)).toHaveValue('anna@piri.com')
   })
 
-  it('volta ao modo leitura ao clicar em Cancelar', async () => {
+  it('volta ao modo leitura ao cancelar', async () => {
     const user = userEvent.setup()
     renderPage()
     await user.click(screen.getByRole('button', { name: /editar perfil/i }))
@@ -168,6 +248,22 @@ describe('ProfilePage — RF03', () => {
       isMorador: false,
     })
     renderPage()
-    expect(screen.getByText(/precisa estar logado/i)).toBeInTheDocument()
+
+    await waitFor(() =>
+      expect(screen.getAllByRole('button', { name: /excluir avaliação/i }).length).toBeGreaterThan(0)
+    )
+
+    const deleteButtons = screen.getAllByRole('button', { name: /excluir avaliação/i })
+    await user.click(deleteButtons[0])
+
+    await waitFor(() =>
+      expect(screen.getByText(/tem certeza que deseja excluir/i)).toBeInTheDocument()
+    )
+
+    await user.click(screen.getByRole('button', { name: /^excluir$/i }))
+
+    await waitFor(() =>
+      expect(screen.getByText('Erro ao excluir avaliação')).toBeInTheDocument()
+    )
   })
 })

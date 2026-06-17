@@ -9,7 +9,7 @@
  *   2. Troque <MapContainer> por <GoogleMap> em PlacesPage.jsx
  *   3. A estrutura de dados (lat/lng) permanece idêntica
  */
-import apiClient from '../fetcher/apiClient';
+import apiClient from '../../api/client';
 
 /* ─── Dados mock (usados enquanto o backend não implementa) ─── */
 const MOCK_PLACES = [

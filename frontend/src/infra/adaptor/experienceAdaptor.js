@@ -4,7 +4,7 @@
  * API real disponível: GET /places/:id/experiences, POST /places/:id/experiences
  * Demais operações: mockadas até o backend implementar.
  */
-import apiClient from '../fetcher/apiClient';
+import apiClient from '../../api/client';
 
 /* ─── Dados mock ─── */
 const now = Date.now();

@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
@@ -88,7 +88,7 @@ describe('ProfilePage — RF03', () => {
     expect(screen.getByRole('button', { name: /editar perfil/i })).toBeInTheDocument()
   })
 
-  it('chama updateProfile ao submeter o formulário', async () => {
+  it('chama updateProfile ao submeter com alteração', async () => {
     const updateProfile = vi.fn().mockResolvedValue(mockUser)
     vi.mocked(AuthContext.useAuth).mockReturnValue({
       user: mockUser,
@@ -99,6 +99,8 @@ describe('ProfilePage — RF03', () => {
     const user = userEvent.setup()
     renderPage()
     await user.click(screen.getByRole('button', { name: /editar perfil/i }))
+    await user.clear(screen.getByLabelText(/biografia/i))
+    await user.type(screen.getByLabelText(/biografia/i), 'Nova bio')
     await user.click(screen.getByRole('button', { name: /atualizar perfil/i }))
     await waitFor(() => expect(updateProfile).toHaveBeenCalled())
   })
@@ -107,21 +109,55 @@ describe('ProfilePage — RF03', () => {
     const user = userEvent.setup()
     renderPage()
     await user.click(screen.getByRole('button', { name: /editar perfil/i }))
+    await user.clear(screen.getByLabelText(/biografia/i))
+    await user.type(screen.getByLabelText(/biografia/i), 'Bio atualizada')
     await user.click(screen.getByRole('button', { name: /atualizar perfil/i }))
     await waitFor(() =>
       expect(screen.getByText(/perfil atualizado com sucesso/i)).toBeInTheDocument()
     )
   })
 
-  it('exibe validação quando nome é removido', async () => {
+  it('exibe aviso quando nenhuma alteração é detectada', async () => {
+    const updateProfile = vi.fn()
+    vi.mocked(AuthContext.useAuth).mockReturnValue({
+      user: mockUser,
+      updateProfile,
+      isAuthenticated: true,
+      isMorador: true,
+    })
     const user = userEvent.setup()
     renderPage()
     await user.click(screen.getByRole('button', { name: /editar perfil/i }))
-    await user.clear(screen.getByLabelText(/nome completo/i))
     await user.click(screen.getByRole('button', { name: /atualizar perfil/i }))
     await waitFor(() =>
-      expect(screen.getByText(/nome é obrigatório/i)).toBeInTheDocument()
+      expect(screen.getByText(/nenhuma alteração detectada/i)).toBeInTheDocument()
     )
+    expect(updateProfile).not.toHaveBeenCalled()
+  })
+
+  it('rejeita arquivo com tipo inválido', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await user.click(screen.getByRole('button', { name: /editar perfil/i }))
+
+    const file = new File(['gif'], 'photo.gif', { type: 'image/gif' })
+    const input = screen.getByLabelText(/alterar foto de perfil/i)
+    fireEvent.change(input, { target: { files: [file] } })
+
+    expect(screen.getByText(/jpg ou png/i)).toBeInTheDocument()
+  })
+
+  it('rejeita arquivo maior que 5 MB', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await user.click(screen.getByRole('button', { name: /editar perfil/i }))
+
+    const bigContent = new Uint8Array(5 * 1024 * 1024 + 1)
+    const file = new File([bigContent], 'big.jpg', { type: 'image/jpeg' })
+    const input = screen.getByLabelText(/alterar foto de perfil/i)
+    fireEvent.change(input, { target: { files: [file] } })
+
+    expect(screen.getByText(/máximo 5 mb/i)).toBeInTheDocument()
   })
 
   it('exibe aviso quando usuário não está logado', () => {

@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link } from 'react-router-dom';
 import { MdEdit, MdOutlineDelete, MdLocationOn } from 'react-icons/md';
@@ -10,20 +10,32 @@ import StarRating from '../presentation/atoms/StarRating';
 import FormField from '../presentation/molecules/FormField';
 import styles from './ProfilePage.module.css';
 
-/* ─── helpers ─── */
+const MAX_PHOTO_SIZE = 5 * 1024 * 1024;
+const ALLOWED_PHOTO_TYPES = ['image/jpeg', 'image/png'];
+
 function roleLabel(role) {
   if (role === 'morador') return 'Morador';
   if (role === 'turista') return 'Turista';
   return role ?? 'Usuário';
 }
 
-function formatDate(iso) {
-  if (!iso) return '—';
-  const [y, m, d] = iso.split('-');
-  return `${d}/${m}/${y}`;
+function hasLocalChanges(form, user, selectedPhotoFile) {
+  if (selectedPhotoFile) return true;
+
+  const fields = ['name', 'email', 'profession', 'contact', 'birthDate', 'bio'];
+  return fields.some((field) => (form[field] ?? '') !== (user?.[field] ?? ''));
 }
 
-/* ─── mock de dados (substituir por API quando disponível) ─── */
+function validatePhotoFile(file) {
+  if (!ALLOWED_PHOTO_TYPES.includes(file.type)) {
+    return 'Use uma imagem JPG ou PNG.';
+  }
+  if (file.size > MAX_PHOTO_SIZE) {
+    return 'A imagem deve ter no máximo 5 MB.';
+  }
+  return null;
+}
+
 const MOCK_RELATOS_MORADOR = [
   { id: 1, local: 'Restaurante LovePiri', autor: 'Josefina Souza', dias: 5, texto: 'Já tive experiências melhores. Olha, meus 65 anos de vida eu já tive experiências muito diversas em vários restaurantes pelo país e tenho propriedade para dizer que já cansara de restaurantes melhores em Pirenópolis.', likes: 3 },
   { id: 2, local: 'Restaurante LovePiri', autor: 'Josefina Souza', dias: 5, texto: 'Já tive experiências melhores. Olha, meus 65 anos de vida eu já tive experiências muito diversas.', likes: 3 },
@@ -45,17 +57,6 @@ const MOCK_AVALIACOES_TURISTA = [
   { id: 4, local: 'Pousada das Cavalhadas', titulo: 'Quero morar aqui...', texto: 'Sempre indico para os amigos que vêm visitar. O café da manhã tem aquele gostinho de fazenda.', rating: 5, dias: 66 },
 ];
 
-/* ─── sub-componente: linha de info em modo leitura ─── */
-function InfoRow({ label, value }) {
-  return (
-    <div className={styles.infoRow}>
-      <span className={styles.infoLabel}>{label}</span>
-      <span className={styles.infoValue}>{value || '—'}</span>
-    </div>
-  );
-}
-
-/* ─── seção Morador ─── */
 function MoradorSections() {
   return (
     <>
@@ -100,7 +101,6 @@ function MoradorSections() {
   );
 }
 
-/* ─── seção Turista ─── */
 function TuristaSections() {
   return (
     <div className={styles.sectionCard}>
@@ -127,13 +127,13 @@ function TuristaSections() {
   );
 }
 
-/* ─── componente principal ─── */
 export default function ProfilePage() {
   const { user, updateProfile, isMorador } = useAuth();
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(null);
+  const [selectedPhotoFile, setSelectedPhotoFile] = useState(null);
   const fileInputRef = useRef(null);
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm({
@@ -147,25 +147,32 @@ export default function ProfilePage() {
     },
   });
 
+  useEffect(() => {
+    return () => {
+      if (avatarPreview?.startsWith('blob:')) {
+        URL.revokeObjectURL(avatarPreview);
+      }
+    };
+  }, [avatarPreview]);
+
   function handleAvatarChange(e) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      // Comprime para max 200x200px antes de salvar (evita estourar localStorage)
-      const img = new Image();
-      img.onload = () => {
-        const MAX = 200;
-        const scale = Math.min(MAX / img.width, MAX / img.height, 1);
-        const canvas = document.createElement('canvas');
-        canvas.width  = Math.round(img.width  * scale);
-        canvas.height = Math.round(img.height * scale);
-        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-        setAvatarPreview(canvas.toDataURL('image/jpeg', 0.8));
-      };
-      img.src = ev.target.result;
-    };
-    reader.readAsDataURL(file);
+
+    const photoError = validatePhotoFile(file);
+    if (photoError) {
+      setFeedback({ type: 'error', msg: photoError });
+      e.target.value = '';
+      return;
+    }
+
+    if (avatarPreview?.startsWith('blob:')) {
+      URL.revokeObjectURL(avatarPreview);
+    }
+
+    setSelectedPhotoFile(file);
+    setAvatarPreview(URL.createObjectURL(file));
+    setFeedback(null);
   }
 
   function startEditing() {
@@ -184,19 +191,36 @@ export default function ProfilePage() {
   function cancelEditing() {
     setEditing(false);
     setFeedback(null);
+    setSelectedPhotoFile(null);
+    if (avatarPreview?.startsWith('blob:')) {
+      URL.revokeObjectURL(avatarPreview);
+    }
     setAvatarPreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   }
 
   async function onSubmit(data) {
     setSaving(true);
     setFeedback(null);
+
+    if (!hasLocalChanges(data, user, selectedPhotoFile)) {
+      setFeedback({ type: 'error', msg: 'Nenhuma alteração detectada' });
+      setSaving(false);
+      return;
+    }
+
     try {
-      await updateProfile({ ...data, avatarUrl: avatarPreview ?? user?.avatarUrl });
+      await updateProfile(data, selectedPhotoFile ?? undefined);
       setFeedback({ type: 'success', msg: 'Perfil atualizado com sucesso!' });
+      setSelectedPhotoFile(null);
+      if (avatarPreview?.startsWith('blob:')) {
+        URL.revokeObjectURL(avatarPreview);
+      }
       setAvatarPreview(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
       setEditing(false);
-    } catch {
-      setFeedback({ type: 'error', msg: 'Erro ao salvar. Tente novamente.' });
+    } catch (err) {
+      setFeedback({ type: 'error', msg: err.message ?? 'Erro ao salvar. Tente novamente.' });
     } finally {
       setSaving(false);
     }
@@ -205,24 +229,28 @@ export default function ProfilePage() {
   if (!user) {
     return (
       <div className={styles.page}>
-        <p className={styles.empty}>Você precisa estar logado para ver seu perfil.</p>
+        <p className={styles.empty}>
+          Você precisa estar logado para ver seu perfil.{' '}
+          <Link to="/login">Fazer login</Link>
+        </p>
       </div>
     );
   }
+
+  const avatarSrc = avatarPreview ?? user.avatarUrl;
 
   return (
     <div className={styles.page}>
       <div className={styles.container}>
 
-        {/* ── Cabeçalho do perfil ── */}
         <div className={styles.profileHeader}>
           <div className={styles.profileLeft}>
             <div className={styles.avatarWrap}>
-              <Avatar src={avatarPreview ?? user.avatarUrl} name={user.name} size="xl" />
+              <Avatar src={avatarSrc} name={user.name} size="xl" />
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/png"
                 className={styles.avatarFileInput}
                 onChange={handleAvatarChange}
                 aria-label="Alterar foto de perfil"
@@ -233,7 +261,6 @@ export default function ProfilePage() {
                   className={styles.avatarUploadBtn}
                   onClick={() => fileInputRef.current?.click()}
                   title="Alterar foto"
-                  aria-label="Alterar foto de perfil"
                 >
                   <MdEdit size={14} />
                 </button>
@@ -261,7 +288,6 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* ── Botões de ação ── */}
         {!editing && (
           <div className={styles.actionBtns}>
             <Button variant="danger" size="sm" onClick={() => {}}>
@@ -282,14 +308,12 @@ export default function ProfilePage() {
           </div>
         )}
 
-        {/* ── Feedback ── */}
         {feedback && (
           <div className={`${styles.feedback} ${styles[feedback.type]}`} role="alert">
             {feedback.msg}
           </div>
         )}
 
-        {/* ── Modo edição ── */}
         {editing && (
           <form className={styles.form} onSubmit={handleSubmit(onSubmit)} noValidate>
             <h2 className={styles.sectionTitle}>EDITAR PERFIL</h2>
@@ -299,7 +323,7 @@ export default function ProfilePage() {
                 id="name"
                 label="Nome completo"
                 placeholder="Seu nome completo"
-                registration={register('name', { required: 'Nome é obrigatório' })}
+                registration={register('name')}
                 error={errors.name?.message}
               />
               <FormField
@@ -308,8 +332,10 @@ export default function ProfilePage() {
                 type="email"
                 placeholder="seu@email.com"
                 registration={register('email', {
-                  required: 'E-mail é obrigatório',
-                  pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: 'E-mail inválido' },
+                  validate: (value) => {
+                    if (!value?.trim()) return true;
+                    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) || 'E-mail inválido';
+                  },
                 })}
                 error={errors.email?.message}
               />
@@ -355,7 +381,6 @@ export default function ProfilePage() {
           </form>
         )}
 
-        {/* ── Seções por role (só no modo leitura) ── */}
         {!editing && (
           isMorador ? <MoradorSections /> : <TuristaSections />
         )}

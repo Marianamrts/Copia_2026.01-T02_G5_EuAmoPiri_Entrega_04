@@ -8,7 +8,7 @@ import Icon from '../atoms/Icon';
 import styles from './Header.module.css';
 
 export default function Header() {
-  const { user, isAuthenticated, isMorador, logout } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
 

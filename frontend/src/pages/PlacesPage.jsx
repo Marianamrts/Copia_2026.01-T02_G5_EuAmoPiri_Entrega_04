@@ -15,6 +15,9 @@ import 'leaflet/dist/leaflet.css';
 import { MdSearch } from 'react-icons/md';
 import { useAuth } from '../context/AuthContext';
 import { fetchPlaces } from '../infra/adaptor/placeAdaptor';
+import { fetchExperiencesByPlaces } from '../infra/adaptor/experienceAdaptor';
+import { enrichPlacesWithExperienceStats, formatPublicRating } from '../utils/placeStats';
+import { CATEGORY_LABELS } from '../utils/placeCategories';
 import StarRating from '../presentation/atoms/StarRating';
 import Button from '../presentation/atoms/Button';
 import Spinner from '../presentation/atoms/Spinner';
@@ -30,17 +33,10 @@ L.Icon.Default.mergeOptions({
 
 const PIRI_CENTER = [-15.8503, -48.9571];
 
-const CATEGORY_LABELS = {
-  gastronomia: 'Gastronomia',
-  natureza:    'Natureza',
-  hospedagem:  'Hospedagem',
-  cultura:     'Cultura',
-  compras:     'Compras',
-  aventura:    'Aventura',
-};
-
 /* ── Card compacto para a sidebar ── */
 function SidebarCard({ place, active, onClick }) {
+  const { starValue, ratingLabel, reviewsLabel } = formatPublicRating(place);
+
   return (
     <Link
       to={`/locais/${place.id}`}
@@ -60,14 +56,17 @@ function SidebarCard({ place, active, onClick }) {
         )}
         <div className={styles.sidebarCardContent}>
           <div className={styles.sidebarCardHeader}>
-            <span className={styles.sidebarCardName}>{place.name}</span>          </div>
+            <span className={styles.sidebarCardName}>{place.name}</span>
+          </div>
           <span className={styles.sidebarCardCat}>
             {CATEGORY_LABELS[place.category] ?? place.category}
           </span>
           <div className={styles.sidebarCardRating}>
-            <StarRating value={Math.round(place.rating ?? 0)} readonly size="sm" />
-            <span className={styles.sidebarCardRatingNum}>{place.rating?.toFixed(1)}</span>
-            <span className={styles.sidebarCardReviews}>({place.reviewsCount} avaliações)</span>
+            <StarRating value={starValue} readonly size="sm" />
+            {ratingLabel != null && (
+              <span className={styles.sidebarCardRatingNum}>{ratingLabel}</span>
+            )}
+            <span className={styles.sidebarCardReviews}>({reviewsLabel})</span>
           </div>
         </div>
       </div>
@@ -89,9 +88,33 @@ export default function PlacesPage() {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    fetchPlaces()
-      .then((data) => { if (!cancelled) { setPlaces(Array.isArray(data) ? data : []); setLoading(false); } })
-      .catch((err) => { if (!cancelled) { setError(err.message); setLoading(false); } });
+    setError(null);
+
+    (async () => {
+      try {
+        const data = await fetchPlaces();
+        const list = Array.isArray(data) ? data : [];
+        if (list.length === 0) {
+          if (!cancelled) {
+            setPlaces([]);
+            setLoading(false);
+          }
+          return;
+        }
+
+        const experiences = await fetchExperiencesByPlaces(list.map((p) => p.id));
+        if (!cancelled) {
+          setPlaces(enrichPlacesWithExperienceStats(list, experiences));
+          setLoading(false);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err.message ?? 'Erro ao carregar locais');
+          setLoading(false);
+        }
+      }
+    })();
+
     return () => { cancelled = true; };
   }, []);
 

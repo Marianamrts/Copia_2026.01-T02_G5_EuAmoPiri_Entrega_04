@@ -27,7 +27,7 @@ import * as expAdaptor   from '../infra/adaptor/experienceAdaptor'
 import * as AuthContext  from '../context/AuthContext'
 
 const MOCK_PLACE = {
-  id: 1, name: 'Cachoeira da Rosário', category: 'natureza',
+  id: 1, name: 'Cachoeira da Rosário', category: 'cachoeira',
   description: 'Águas cristalinas em Pirenópolis.',
   address: 'Estrada da Rosário, km 3', rating: 4.8,
   reviewsCount: 50, mapsLink: null,

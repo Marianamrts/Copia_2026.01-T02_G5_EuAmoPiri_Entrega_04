@@ -362,6 +362,51 @@ describe('ProfilePage — painel do morador', () => {
 })
 
 /* ══════════════════════════════════════════════════════════════
+   Painel do turista (consolidado em /perfil)
+   ══════════════════════════════════════════════════════════════ */
+describe('ProfilePage — painel do turista', () => {
+  const MOCK_AVALIACOES = [
+    {
+      id: 1,
+      placeId: 2,
+      placeName: 'Restaurante LovePiri',
+      title: 'Experiência incrível!',
+      text: 'Adorei a comida caseira.',
+      rating: 5,
+      createdAt: new Date().toISOString(),
+    },
+  ]
+
+  beforeEach(() => {
+    asTurista()
+    vi.mocked(experienceAdaptor.fetchMyExperiences).mockResolvedValue(MOCK_AVALIACOES)
+  })
+
+  it('exibe título SUAS AVALIAÇÕES e seção de avaliações', async () => {
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByText('SUAS AVALIAÇÕES')).toBeInTheDocument()
+      expect(screen.getByText('AVALIAÇÕES CADASTRADAS')).toBeInTheDocument()
+    })
+  })
+
+  it('exibe avaliações reais da API', async () => {
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByText('Experiência incrível!')).toBeInTheDocument()
+      expect(screen.getByText('Restaurante LovePiri')).toBeInTheDocument()
+    })
+  })
+
+  it('exibe contagem de relatos no cabeçalho', async () => {
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByText('1')).toBeInTheDocument()
+    })
+  })
+})
+
+/* ══════════════════════════════════════════════════════════════
    Exclusão de avaliação (turista)
    ══════════════════════════════════════════════════════════════ */
 describe('ProfilePage — exclusão de avaliação', () => {
@@ -373,7 +418,7 @@ describe('ProfilePage — exclusão de avaliação', () => {
       title: 'Melhor botequim',
       text: 'Recomendo demais!',
       rating: 5,
-      dias: 5,
+      createdAt: new Date(Date.now() - 5 * 86400000).toISOString(),
     }
     vi.mocked(experienceAdaptor.fetchMyExperiences).mockResolvedValue([mockAvaliacao])
     vi.mocked(experienceAdaptor.deleteExperience).mockRejectedValue(new Error('fail'))

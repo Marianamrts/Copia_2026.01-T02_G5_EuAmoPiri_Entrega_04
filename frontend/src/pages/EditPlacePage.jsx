@@ -5,16 +5,10 @@ import { fetchPlaceById, updatePlace } from '../infra/adaptor/placeAdaptor';
 import Button from '../presentation/atoms/Button';
 import FormField from '../presentation/molecules/FormField';
 import Spinner from '../presentation/atoms/Spinner';
+import { CATEGORY_LABELS, CATEGORY_OPTIONS } from '../utils/placeCategories';
 import styles from './EditPlacePage.module.css';
 
-const CATEGORIAS = [
-  { value: 'gastronomia', label: 'Gastronomia' },
-  { value: 'natureza',    label: 'Natureza' },
-  { value: 'cultura',     label: 'Cultura' },
-  { value: 'hospedagem',  label: 'Hospedagem' },
-  { value: 'experiencia', label: 'Experiência' },
-  { value: 'histórico',   label: 'Histórico' },
-];
+const CATEGORIAS = CATEGORY_OPTIONS;
 
 export default function EditPlacePage() {
   const { id } = useParams();
@@ -33,7 +27,7 @@ export default function EditPlacePage() {
       .then((place) => {
         reset({
           name:        place.name        ?? '',
-          category:    place.category    ?? 'gastronomia',
+          category:    place.category    ?? 'restaurante',
           description: place.description ?? '',
           address:     place.address     ?? '',
           hours:       place.hours       ?? '',

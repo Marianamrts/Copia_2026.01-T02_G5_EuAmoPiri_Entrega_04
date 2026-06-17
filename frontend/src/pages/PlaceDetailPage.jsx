@@ -6,6 +6,7 @@ import { fetchExperiencesByPlace, reactToExperience } from '../infra/adaptor/exp
 import Button from '../presentation/atoms/Button';
 import StarRating from '../presentation/atoms/StarRating';
 import Spinner from '../presentation/atoms/Spinner';
+import { CATEGORY_LABELS } from '../utils/placeCategories';
 import styles from './PlaceDetailPage.module.css';
 
 /* ─── helpers ─── */
@@ -19,11 +20,6 @@ function timeAgo(iso) {
   const m = Math.floor(days / 30);
   return m === 1 ? 'há 1 mês' : `há ${m} meses`;
 }
-
-const CATEGORY_LABELS = {
-  gastronomia: 'Gastronomia', natureza: 'Natureza', hospedagem: 'Hospedagem',
-  cultura: 'Cultura', compras: 'Compras', aventura: 'Aventura',
-};
 
 const REACTION_EMOJIS = [
   { key: 'heart',   emoji: '❤️' },

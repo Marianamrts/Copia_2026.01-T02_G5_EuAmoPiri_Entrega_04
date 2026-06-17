@@ -12,6 +12,7 @@ import FormField from '../presentation/molecules/FormField';
 import { deletePlace, fetchMyPlaces } from '../infra/adaptor/placeAdaptor';
 import { deleteExperience, fetchMyExperiences, fetchExperiencesByPlaces } from '../infra/adaptor/experienceAdaptor';
 import { enrichPlacesWithExperienceStats, timeAgo, categoryIcon } from '../utils/placeStats';
+import { categoryLabel } from '../utils/placeCategories';
 import styles from './ProfilePage.module.css';
 
 const MAX_PHOTO_SIZE = 5 * 1024 * 1024;
@@ -198,7 +199,7 @@ function MoradorSections({ user, onRelatosCount }) {
                     <Link to={`/locais/${place.id}`} className={styles.localNome}>
                       {place.name}
                     </Link>
-                    <span className={styles.localCat}>{place.category}</span>
+                    <span className={styles.localCat}>{categoryLabel(place.category)}</span>
                     <div className={styles.localRating}>
                       <StarRating value={Math.round(place.rating ?? 0)} readonly size="sm" />
                       <span className={styles.localMeta}>
@@ -283,13 +284,30 @@ function MoradorSections({ user, onRelatosCount }) {
 
 function TuristaSections({ onRelatosCount }) {
   const [avaliacoes, setAvaliacoes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
   const [confirmId, setConfirmId] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteErr, setDeleteErr] = useState(null);
   const [deleteSuccess, setDeleteSuccess] = useState(false);
 
   useEffect(() => {
-    fetchMyExperiences().then(setAvaliacoes);
+    let cancelled = false;
+    setLoading(true);
+    setLoadError(null);
+
+    fetchMyExperiences()
+      .then((data) => {
+        if (!cancelled) setAvaliacoes(Array.isArray(data) ? data : []);
+      })
+      .catch(() => {
+        if (!cancelled) setLoadError('Erro ao carregar suas avaliações.');
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
@@ -318,6 +336,18 @@ function TuristaSections({ onRelatosCount }) {
     }
   }
 
+  if (loading) {
+    return (
+      <div className={styles.sectionLoading}>
+        <Spinner size="md" />
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return <p className={styles.empty}>{loadError}</p>;
+  }
+
   return (
     <>
       <div className={styles.sectionCard}>
@@ -330,12 +360,16 @@ function TuristaSections({ onRelatosCount }) {
             <div key={a.id} className={styles.avaliacaoCard}>
               <div className={styles.avaliacaoMeta}>
                 <MdLocationOn size={16} className={styles.pinIcon} />
-                <span className={styles.avaliacaoLocal}>{a.placeName}</span>
-                <span className={styles.avaliacaoDias}>há {a.dias} dias</span>
+                <Link to={`/locais/${a.placeId}`} className={styles.avaliacaoLocal}>
+                  {a.placeName ?? 'Local'}
+                </Link>
+                <span className={styles.avaliacaoDias}>
+                  {a.createdAt ? timeAgo(a.createdAt) : '—'}
+                </span>
               </div>
-              <StarRating value={a.rating} readonly size="sm" />
+              <StarRating value={a.rating ?? 0} readonly size="sm" />
               {a.title && <p className={styles.avaliacaoTitulo}>{a.title}</p>}
-              <p className={styles.avaliacaoTexto}>"{a.text}"</p>
+              <p className={styles.avaliacaoTexto}>{a.text}</p>
               <div className={styles.relatoActions}>
                 <Button
                   variant="secondary"
@@ -555,6 +589,10 @@ export default function ProfilePage() {
   return (
     <div className={styles.page}>
       <div className={styles.container}>
+
+        {!editing && !isMorador && (
+          <h2 className={styles.pageRoleTitle}>SUAS AVALIAÇÕES</h2>
+        )}
 
         <div className={styles.profileHeader}>
           <div className={styles.profileLeft}>

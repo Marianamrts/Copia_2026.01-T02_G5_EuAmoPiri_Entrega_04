@@ -7,13 +7,8 @@ import ExperienceForm from '../presentation/organisms/ExperienceForm';
 import RoleNotice from '../presentation/molecules/RoleNotice';
 import StarRating from '../presentation/atoms/StarRating';
 import Button from '../presentation/atoms/Button';
+import { CATEGORY_LABELS } from '../utils/placeCategories';
 import styles from './CreateExperiencePage.module.css';
-
-const CATEGORY_LABELS = {
-  cachoeira: 'Cachoeira', restaurante: 'Restaurante', pousada: 'Pousada',
-  gastronomia: 'Gastronomia', natureza: 'Natureza', hospedagem: 'Hospedagem',
-  cultura: 'Cultura', compras: 'Compras', aventura: 'Aventura',
-};
 
 export default function CreateExperiencePage() {
   const { placeId } = useParams();

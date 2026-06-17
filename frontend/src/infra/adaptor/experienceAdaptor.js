@@ -1,10 +1,4 @@
-/**
- * CAMADA INFRA — Adaptor de Relatos (Experiences)
- *
- * API real disponível: GET /places/:id/experiences, POST /places/:id/experiences
- * Demais operações: mockadas até o backend implementar.
- */
-import apiClient from '../fetcher/apiClient';
+import apiClient, { postFormData } from '../../api/client';
 
 /* ─── Dados mock ─── */
 const now = Date.now();
@@ -93,74 +87,85 @@ function diffDays(isoDate) {
 /**
  * Retorna as experiências do usuário logado (mock: userId === 'current').
  * Inclui `dias` calculado a partir de `createdAt`.
- * TODO: substituir por GET /me/experiences quando o backend implementar.
  */
 export async function fetchMyExperiences() {
-  return MOCK_EXPERIENCES
-    .filter((e) => e.userId === 'current')
-    .map((e) => ({ ...e, dias: diffDays(e.createdAt) }));
-}
-
-export async function fetchExperiencesByPlaces(placeIds) {
-  const ids = placeIds.map(Number);
-  return MOCK_EXPERIENCES.filter((e) => ids.includes(e.placeId));
+  try {
+    const { data } = await apiClient.get('/auth/me/experiences');
+    return Array.isArray(data) ? data : [];
+  } catch {
+    return MOCK_EXPERIENCES
+      .filter((e) => e.userId === 'current')
+      .map((e) => ({ ...e, dias: diffDays(e.createdAt) }));
+  }
 }
 
 export async function fetchExperiencesByPlace(placeId) {
-  // TODO: descomentar quando backend estiver integrado
-  // try {
-  //   const { data } = await apiClient.get(`/places/${placeId}/experiences`);
-  //   return Array.isArray(data) ? data : [];
-  // } catch { /* fallthrough para mock */ }
-  return MOCK_EXPERIENCES.filter((e) => e.placeId === Number(placeId));
-}
-
-export async function createExperience(placeId, experienceData) {
-  // TODO: descomentar quando backend estiver integrado
-  // const { data } = await apiClient.post(`/places/${placeId}/experiences`, experienceData);
-  // return data;
-  const newExp = {
-    ...experienceData,
-    id:      Date.now(),
-    placeId: Number(placeId),
-    userId:  'current',   // marca como relato do usuário logado
-  };
-  MOCK_EXPERIENCES.unshift(newExp);
-  return newExp;
-}
-
-export async function updateExperience(placeId, experienceId, experienceData) {
-  // TODO: substituir por apiClient.put quando disponível
-  const idx = MOCK_EXPERIENCES.findIndex(
-    (e) => String(e.id) === String(experienceId) && String(e.placeId) === String(placeId)
-  );
-  if (idx !== -1) {
-    MOCK_EXPERIENCES[idx] = {
-      ...MOCK_EXPERIENCES[idx],
-      ...experienceData,
-      createdAt: new Date().toISOString(), // atualiza timestamp ao editar
-    };
+  try {
+    const { data } = await apiClient.get(`/places/${placeId}/experiences`);
+    return Array.isArray(data) ? data : [];
+  } catch {
+    return MOCK_EXPERIENCES
+      .filter((e) => String(e.placeId) === String(placeId))
+      .map((e) => ({ ...e, dias: diffDays(e.createdAt) }));
   }
-  return MOCK_EXPERIENCES[idx] ?? { ...experienceData, id: experienceId, placeId };
 }
 
-export async function deleteExperience(placeId, experienceId) {
-  // TODO: substituir por apiClient.delete quando disponível
-  const idx = MOCK_EXPERIENCES.findIndex(
-    (e) => String(e.id) === String(experienceId) && String(e.placeId) === String(placeId)
-  );
-  if (idx !== -1) MOCK_EXPERIENCES.splice(idx, 1);
-  return { success: true };
+export async function fetchExperiencesByPlaces(placeIds) {
+  const results = await Promise.all(placeIds.map((id) => fetchExperiencesByPlace(id)));
+  return results.flat();
 }
 
-export async function reactToExperience(placeId, experienceId, emoji) {
-  // TODO: substituir quando o backend implementar
-  console.warn('[mock] reactToExperience:', emoji, 'em', experienceId);
-  return { success: true };
+export async function createExperience(placeId, experienceData, photoFiles = []) {
+  try {
+    const fd = new FormData();
+    fd.append('rating',    String(experienceData.rating    ?? 5));
+    fd.append('text',      experienceData.text             ?? '');
+    fd.append('visitDate', experienceData.visitDate        ?? new Date().toISOString().slice(0, 10));
+    if (experienceData.title) fd.append('title', experienceData.title);
+    (photoFiles ?? []).forEach((file) => { if (file instanceof File) fd.append('photos', file); });
+
+    const data = await postFormData(`/places/${placeId}/experiences`, fd);
+    return { ...data, dias: 0 };
+  } catch {
+    const newExp = { ...experienceData, id: Date.now(), placeId: Number(placeId), dias: 0 };
+    MOCK_EXPERIENCES.push(newExp);
+    return newExp;
+  }
 }
 
-export async function reportExperience(placeId, experienceId, reason) {
-  // TODO: substituir quando o backend implementar
-  console.warn('[mock] reportExperience:', experienceId, reason);
-  return { success: true };
+export async function updateExperience(placeId, id, experienceData) {
+  try {
+    const { data } = await apiClient.put(`/places/${placeId}/experiences/${id}`, experienceData);
+    return data;
+  } catch {
+    const idx = MOCK_EXPERIENCES.findIndex((e) => String(e.id) === String(id));
+    if (idx !== -1) {
+      MOCK_EXPERIENCES[idx] = { ...MOCK_EXPERIENCES[idx], ...experienceData };
+      return MOCK_EXPERIENCES[idx];
+    }
+    throw new Error('Experience not found');
+  }
+}
+
+export async function deleteExperience(placeId, id) {
+  try {
+    await apiClient.delete(`/places/${placeId}/experiences/${id}`);
+  } catch {
+    const idx = MOCK_EXPERIENCES.findIndex((e) => String(e.id) === String(id));
+    if (idx !== -1) MOCK_EXPERIENCES.splice(idx, 1);
+  }
+}
+
+export async function reactToExperience(placeId, id, reaction) {
+  try {
+    const { data } = await apiClient.post(`/places/${placeId}/experiences/${id}/react`, { reaction });
+    return data;
+  } catch {
+    const exp = MOCK_EXPERIENCES.find((e) => String(e.id) === String(id));
+    if (exp) {
+      exp.reactions = { ...exp.reactions, [reaction]: (exp.reactions?.[reaction] ?? 0) + 1 };
+      return exp;
+    }
+    return null;
+  }
 }

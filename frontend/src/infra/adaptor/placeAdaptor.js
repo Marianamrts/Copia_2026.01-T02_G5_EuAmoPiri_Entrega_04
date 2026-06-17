@@ -1,15 +1,23 @@
-/**
- * CAMADA INFRA — Adaptor de Locais
- *
- * Mapeia as chamadas de domínio para os endpoints da API REST.
- * Isola o restante da aplicação dos detalhes da API.
- *
- * Para substituir o mapa OpenStreetMap (Leaflet) pelo Google Maps:
- *   1. Instale @react-google-maps/api
- *   2. Troque <MapContainer> por <GoogleMap> em PlacesPage.jsx
- *   3. A estrutura de dados (lat/lng) permanece idêntica
- */
-import apiClient from '../fetcher/apiClient';
+import apiClient, { postFormData } from '../../api/client';
+import { resolveMediaUrl } from '../../utils/mediaUrl';
+
+/* ─── Mapeamento de fotos do backend ─── */
+function mapPlace(place) {
+  if (!place) return place;
+  return {
+    ...place,
+    coverImage: resolveMediaUrl(place.coverImage ?? place.photos?.[0]?.url),
+    photos: (place.photos ?? []).map((p) => ({ ...p, url: resolveMediaUrl(p.url) })),
+  };
+}
+
+/* ─── Lê o ID do usuário logado do localStorage ─── */
+function getLoggedUserId() {
+  try {
+    const user = JSON.parse(localStorage.getItem('euamopiri_user') ?? 'null');
+    return user?.id ?? null;
+  } catch { return null; }
+}
 
 /* ─── Dados mock (usados enquanto o backend não implementa) ─── */
 const MOCK_PLACES = [
@@ -44,6 +52,7 @@ const MOCK_PLACES = [
     coverImage: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=300&q=70',
     lat: -15.8654, lng: -48.9234, photos: [], mapsLink: null,
     createdAt: new Date('2026-04-20').toISOString(),
+    moradorId: 1,
   },
   {
     id: 4, name: 'Igreja Matriz de N. S. do Rosário', category: 'cultura',
@@ -54,6 +63,7 @@ const MOCK_PLACES = [
     coverImage: 'https://images.unsplash.com/photo-1548625149-fc4a29cf7092?w=300&q=70',
     lat: -15.8497, lng: -48.9575, photos: [], mapsLink: null,
     createdAt: new Date('2026-03-10').toISOString(),
+    moradorId: 1,
   },
   {
     id: 5, name: 'Pousada das Cavalhadas', category: 'hospedagem',
@@ -64,6 +74,7 @@ const MOCK_PLACES = [
     coverImage: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=300&q=70',
     lat: -15.8510, lng: -48.9555, photos: [], mapsLink: null,
     createdAt: new Date('2026-04-01').toISOString(),
+    moradorId: 1,
   },
   {
     id: 6, name: 'Restaurante LovePiri', category: 'gastronomia',
@@ -78,39 +89,135 @@ const MOCK_PLACES = [
   },
 ];
 
+/* ─── Locais criados localmente nesta sessão ─── */
+/* Persistidos em sessionStorage para sobreviver ao HMR do Vite */
+function loadLocalPlaces() {
+  try {
+    const raw = sessionStorage.getItem('euamopiri_local_places');
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+function saveLocalPlaces(arr) {
+  try { sessionStorage.setItem('euamopiri_local_places', JSON.stringify(arr)); } catch {}
+}
+const LOCAL_PLACES = loadLocalPlaces();
+
 /* ─── Funções do adaptor ─── */
 
 export async function fetchPlaces() {
   try {
     const { data } = await apiClient.get('/places');
-    return Array.isArray(data) ? data : MOCK_PLACES;
+    const apiPlaces = Array.isArray(data) ? data.map(mapPlace) : MOCK_PLACES;
+    // Mescla locais criados localmente que ainda não estão na API
+    const localOnly = LOCAL_PLACES.filter(
+      (lp) => !apiPlaces.find((ap) => String(ap.id) === String(lp.id))
+    );
+    return [...apiPlaces, ...localOnly];
   } catch {
-    return MOCK_PLACES;
+    return [...MOCK_PLACES, ...LOCAL_PLACES];
   }
 }
 
 export async function fetchPlaceById(id) {
-  const place = MOCK_PLACES.find((p) => p.id === Number(id));
-  if (!place) throw new Error('Local não encontrado');
-  return place;
+  // Verifica primeiro os locais criados localmente nesta sessão
+  const localPlace = LOCAL_PLACES.find((p) => String(p.id) === String(id));
+  if (localPlace) return localPlace;
+
+  try {
+    const { data } = await apiClient.get(`/places/${id}`);
+    // Valida que a resposta contém dados reais
+    if (!data || typeof data !== 'object' || (!data.id && !data.name)) {
+      throw new Error('Resposta vazia da API');
+    }
+    return mapPlace(data);
+  } catch {
+    return MOCK_PLACES.find((p) => String(p.id) === String(id)) ?? null;
+  }
 }
 
 export async function createPlace(placeData) {
-  const { data } = await apiClient.post('/places', placeData);
-  return data;
+  try {
+    const fd = new FormData();
+    fd.append('name',        placeData.name        ?? '');
+    fd.append('address',     placeData.address     ?? '');
+    fd.append('category',    (placeData.category   ?? '').toUpperCase());
+    fd.append('description', placeData.description ?? '');
+    if (placeData.mapsLink)    fd.append('mapsLink',    placeData.mapsLink);
+    if (placeData.phone)       fd.append('phone',       placeData.phone);
+    if (placeData.openingDate) fd.append('openingDate', placeData.openingDate);
+
+    // photos pode ser Array<{file, previewUrl}> (CreatePlacePage) ou Array<string> (mock)
+    (placeData.photos ?? []).forEach((p) => {
+      if (p?.file instanceof File) fd.append('photos', p.file);
+    });
+
+    const data = await postFormData('/places', fd);
+    return mapPlace(data);
+  } catch (error) {
+    // Fallback local para quando o backend não está disponível
+    const photoUrls = (placeData.photos ?? []).map((p) => p?.previewUrl ?? p);
+    const newPlace = {
+      ...placeData,
+      id: Date.now(),
+      photos: photoUrls.map((url) => ({ url })),
+      coverImage: photoUrls[0] ?? null,
+    };
+    LOCAL_PLACES.push(newPlace);
+    saveLocalPlaces(LOCAL_PLACES);
+    return newPlace;
+  }
 }
 
 export async function updatePlace(id, placeData) {
-  console.warn('[mock] updatePlace chamado para id:', id);
-  return { ...placeData, id };
+  // Sem endpoint PUT/PATCH no backend — atualiza apenas localmente
+  const idx = MOCK_PLACES.findIndex((p) => String(p.id) === String(id));
+  if (idx !== -1) {
+    MOCK_PLACES[idx] = { ...MOCK_PLACES[idx], ...placeData };
+    return MOCK_PLACES[idx];
+  }
+  const localIdx = LOCAL_PLACES.findIndex((p) => String(p.id) === String(id));
+  if (localIdx !== -1) {
+    LOCAL_PLACES[localIdx] = { ...LOCAL_PLACES[localIdx], ...placeData };
+    saveLocalPlaces(LOCAL_PLACES);
+    return LOCAL_PLACES[localIdx];
+  }
+  throw new Error('Local não encontrado');
 }
 
 export async function deletePlace(id) {
-  console.warn('[mock] deletePlace chamado para id:', id);
-  return { success: true };
+  // Sem endpoint DELETE no backend — remove apenas localmente
+  const idx = MOCK_PLACES.findIndex((p) => String(p.id) === String(id));
+  if (idx !== -1) MOCK_PLACES.splice(idx, 1);
+  const localIdx = LOCAL_PLACES.findIndex((p) => String(p.id) === String(id));
+  if (localIdx !== -1) {
+    LOCAL_PLACES.splice(localIdx, 1);
+    saveLocalPlaces(LOCAL_PLACES);
+  }
 }
 
-export async function fetchMyPlaces(moradorId) {
-  // TODO: substituir por apiClient.get(`/places?moradorId=${moradorId}`) quando disponível
-  return MOCK_PLACES.filter((p) => p.moradorId === Number(moradorId));
+export async function fetchMyPlaces() {
+  let apiPlaces = [];
+  try {
+    const moradorId = getLoggedUserId();
+    if (moradorId != null) {
+      const { data } = await apiClient.get('/places', { params: { moradorId } });
+      apiPlaces = Array.isArray(data) ? data.map(mapPlace) : [];
+    }
+  } catch {
+    // API falhou — usa apenas mocks
+  }
+
+  // Inclui mocks com moradorId que não estejam já na API
+  const mockWithMorador = MOCK_PLACES.filter((p) => p.moradorId);
+  const mockExtra = mockWithMorador.filter(
+    (mp) => !apiPlaces.find((ap) => String(ap.id) === String(mp.id))
+  );
+
+  // Inclui locais criados localmente nesta sessão
+  const allBase = [...apiPlaces, ...mockExtra];
+  const localOnly = LOCAL_PLACES.filter(
+    (lp) => !allBase.find((p) => String(p.id) === String(lp.id))
+  );
+
+  return [...allBase, ...localOnly];
 }

@@ -48,12 +48,46 @@
 /* ── Cabeçalho do card ── */
 .cardHeader {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   align-items: center;
   margin-bottom: var(--space-6);
   padding-bottom: var(--space-4);
   border-bottom: 1px solid var(--color-gray-200, #e5e5e5);
 }
+
+/* Botões de dono do local */
+.ownerActions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.btnEdit,
+.btnDelete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem 1rem;
+  border: none;
+  border-radius: var(--radius-md, 6px);
+  font-size: var(--font-size-sm, 0.875rem);
+  font-weight: var(--font-weight-medium, 500);
+  cursor: pointer;
+  transition: filter 0.15s ease;
+  color: #fff;
+}
+
+.btnEdit {
+  background-color: #7F5539;
+}
+
+.btnDelete {
+  background-color: #C0550E;
+}
+
+.btnEdit:hover  { filter: brightness(1.12); }
+.btnDelete:hover { filter: brightness(1.12); }
+.btnEdit:disabled,
+.btnDelete:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .headerLogo {
   color: var(--color-brown, #7F5539);
@@ -98,10 +132,12 @@
   align-items: flex-start;
 }
 
-.placePhotoWrap {
+/* Carrossel de fotos */
+.carousel {
+  position: relative;
   flex-shrink: 0;
-  width: 120px;
-  height: 120px;
+  width: 140px;
+  height: 140px;
   border-radius: var(--radius-md, 8px);
   overflow: hidden;
   background: var(--color-gray-200, #e5e5e5);
@@ -111,6 +147,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  display: block;
 }
 
 .placePhotoFallback {
@@ -118,6 +155,49 @@
   height: 100%;
   background: var(--color-gray-200, #e5e5e5);
 }
+
+.carouselBtn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 26px;
+  height: 26px;
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  transition: background 0.15s;
+}
+.carouselBtn:hover { background: rgba(0, 0, 0, 0.65); }
+.carouselBtnPrev { left: 4px; }
+.carouselBtnNext { right: 4px; }
+
+.carouselDots {
+  position: absolute;
+  bottom: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 4px;
+  z-index: 2;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.55);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.dotActive { background: #fff; }
 
 .placeDetails {
   flex: 1;
@@ -462,6 +542,35 @@
   font-size: var(--font-size-sm, 0.875rem);
   font-weight: var(--font-weight-semibold, 600);
   color: var(--color-text, #1a1a1a);
+}
+
+/* ── Modal de confirmação (excluir) ── */
+.confirmModal {
+  background: var(--color-white, #fff);
+  border-radius: var(--radius-lg, 12px);
+  width: 100%;
+  max-width: 400px;
+  padding: var(--space-8) var(--space-6);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.22);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.confirmModal .modalTitle {
+  margin: 0;
+}
+
+.confirmActions {
+  display: flex;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+.confirmActions > * {
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 /* ── Modal ── */

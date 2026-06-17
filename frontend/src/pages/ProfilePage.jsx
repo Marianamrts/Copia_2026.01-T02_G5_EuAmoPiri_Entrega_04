@@ -8,7 +8,7 @@ import Button from '../presentation/atoms/Button';
 import Badge from '../presentation/atoms/Badge';
 import StarRating from '../presentation/atoms/StarRating';
 import FormField from '../presentation/molecules/FormField';
-import { deletePlace } from '../infra/adaptor/placeAdaptor';
+import { deletePlace, fetchMyPlaces } from '../infra/adaptor/placeAdaptor';
 import { deleteExperience, fetchMyExperiences } from '../infra/adaptor/experienceAdaptor';
 import styles from './ProfilePage.module.css';
 
@@ -51,13 +51,37 @@ function InfoRow({ label, value }) {
   );
 }
 
+/* ─── helper: mapeia dado da API para o formato do template ─── */
+function mapPlace(p) {
+  const CATEGORY_ICONS = {
+    gastronomia: '🍽️', natureza: '🏞️', hospedagem: '🏨',
+    cultura: '🎨', compras: '🛍️', aventura: '🌿', histórico: '⛪',
+    experiencia: '🎨',
+  };
+  return {
+    id:        p.id,
+    nome:      p.name      ?? p.nome      ?? '—',
+    categoria: p.category  ?? p.categoria ?? '—',
+    icon:      p.icon ?? CATEGORY_ICONS[p.category ?? p.categoria] ?? '📍',
+    price:     p.price     ?? '—',
+    rating:    p.rating    ?? 0,
+    avaliacoes: p.reviewsCount ?? p.avaliacoes ?? 0,
+  };
+}
+
 /* ─── seção Morador ─── */
 function MoradorSections() {
-  const [locais, setLocais]             = useState(MOCK_LOCAIS_MORADOR);
+  const [locais, setLocais]             = useState([]);
   const [confirmId, setConfirmId]       = useState(null); // id do local a excluir
   const [deleting, setDeleting]         = useState(false);
   const [deleteErr, setDeleteErr]       = useState(null);
   const [deleteSuccess, setDeleteSuccess] = useState(false);
+
+  useEffect(() => {
+    fetchMyPlaces()
+      .then((data) => setLocais((data ?? []).map(mapPlace)))
+      .catch(() => setLocais(MOCK_LOCAIS_MORADOR));
+  }, []);
 
   const toDelete = locais.find((l) => l.id === confirmId);
 
@@ -593,72 +617,77 @@ export default function ProfilePage() {
               rows={3}
               maxLength={300}
               placeholder="Conte um pouco sobre você..."
-              registration={register('bio', { maxLength: { value: 300, message: 'Máximo 300 caracteres' } })}
-              error={errors.bio?.message}
+              registration={register('bio')}
             />
 
             <div className={styles.formActions}>
-              <Button variant="neutral" type="button" onClick={cancelEditing} disabled={saving}>
+              <Button type="button" variant="neutral" onClick={cancelEditing} disabled={saving}>
                 Cancelar
               </Button>
-              <Button variant="primary" type="submit" loading={saving}>
+              <Button type="submit" variant="primary" loading={saving}>
                 Atualizar Perfil
               </Button>
             </div>
           </form>
         )}
 
-        {/* ── Seção: Cadastrar Nova Senha (só no modo edição) ── */}
-        {editing && <form className={styles.passwordForm} onSubmit={handlePasswordUpdate} noValidate>
-          <h2 className={styles.sectionTitle}>CADASTRAR NOVA SENHA</h2>
-
-          <div className={styles.passwordFields}>
-            <input
-              type="password"
-              className={styles.passwordInput}
-              placeholder="Senha Atual"
-              value={passwordData.current}
-              onChange={(e) => setPasswordData((p) => ({ ...p, current: e.target.value }))}
-              autoComplete="current-password"
-              aria-label="Senha atual"
-            />
-            <input
-              type="password"
-              className={styles.passwordInput}
-              placeholder="Nova Senha"
-              value={passwordData.next}
-              onChange={(e) => setPasswordData((p) => ({ ...p, next: e.target.value }))}
-              autoComplete="new-password"
-              aria-label="Nova senha"
-            />
-            <input
-              type="password"
-              className={styles.passwordInput}
-              placeholder="Confirmar Nova Senha"
-              value={passwordData.confirm}
-              onChange={(e) => setPasswordData((p) => ({ ...p, confirm: e.target.value }))}
-              autoComplete="new-password"
-              aria-label="Confirmar nova senha"
-            />
+        {/* ── Seção de senha (só no modo edição) ── */}
+        {editing && (
+          <div className={styles.sectionCard}>
+            <h2 className={styles.sectionTitle}>CADASTRAR NOVA SENHA</h2>
+            <form className={styles.passwordForm} onSubmit={handlePasswordUpdate} noValidate>
+              <div className={styles.formGrid}>
+                <label className={styles.pwLabel}>
+                  Senha atual
+                  <input
+                    type="password"
+                    className={styles.pwInput}
+                    aria-label="Senha atual"
+                    value={passwordData.current}
+                    onChange={(e) => setPasswordData((p) => ({ ...p, current: e.target.value }))}
+                    autoComplete="current-password"
+                  />
+                </label>
+                <label className={styles.pwLabel}>
+                  Nova senha
+                  <input
+                    type="password"
+                    className={styles.pwInput}
+                    aria-label="Nova senha"
+                    value={passwordData.next}
+                    onChange={(e) => setPasswordData((p) => ({ ...p, next: e.target.value }))}
+                    autoComplete="new-password"
+                  />
+                </label>
+                <label className={styles.pwLabel}>
+                  Confirmar nova senha
+                  <input
+                    type="password"
+                    className={styles.pwInput}
+                    aria-label="Confirmar nova senha"
+                    value={passwordData.confirm}
+                    onChange={(e) => setPasswordData((p) => ({ ...p, confirm: e.target.value }))}
+                    autoComplete="new-password"
+                  />
+                </label>
+              </div>
+              {passwordFeedback && (
+                <div
+                  className={`${styles.feedback} ${styles[passwordFeedback.type]}`}
+                  role="alert"
+                >
+                  {passwordFeedback.msg}
+                </div>
+              )}
+              <Button type="submit" variant="primary" loading={savingPassword}>
+                Atualizar Senha
+              </Button>
+            </form>
           </div>
-
-          {passwordFeedback && (
-            <div className={`${styles.feedback} ${styles[passwordFeedback.type]}`} role="alert">
-              {passwordFeedback.msg}
-            </div>
-          )}
-
-          <div className={styles.passwordActions}>
-            <Button variant="secondary" type="submit" loading={savingPassword}>
-              Atualizar Senha
-            </Button>
-          </div>
-        </form>}
-
-        {/* ── Seções por role (só no modo leitura) ── */}
-        {!editing && (
-          isMorador ? <MoradorSections /> : <TuristaSections />
         )}
+
+        {/* ── Seções por role ── */}
+        {isMorador ? <MoradorSections /> : <TuristaSections />}
 
       </div>
     </div>

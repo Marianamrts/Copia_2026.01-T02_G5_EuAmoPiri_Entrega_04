@@ -1,11 +1,3 @@
-/**
- * MOLÉCULA — PlaceCard
- *
- * Card de um ponto turístico para uso na listagem PlacesPage.
- * Exibe: nome, categoria, descrição curta, endereço, avaliação e preço.
- *
- * Reutilizado em: PlacesPage, MoradorDashboard (lista de locais do morador).
- */
 import { Link } from 'react-router-dom';
 import StarRating from '../atoms/StarRating';
 import Badge from '../atoms/Badge';

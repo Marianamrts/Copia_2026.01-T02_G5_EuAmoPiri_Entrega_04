@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { fetchPlaceById } from '../infra/adaptor/placeAdaptor';
+import { fetchPlaceById, deletePlace } from '../infra/adaptor/placeAdaptor';
 import { fetchExperiencesByPlace, reactToExperience } from '../infra/adaptor/experienceAdaptor';
 import Button from '../presentation/atoms/Button';
 import StarRating from '../presentation/atoms/StarRating';
@@ -110,12 +110,16 @@ export default function PlaceDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { isAuthenticated, isTurista } = useAuth();
+  const isMorador = isAuthenticated && !isTurista;
 
-  const [place,         setPlace]         = useState(null);
-  const [experiences,   setExperiences]   = useState([]);
-  const [loadingPlace,  setLoadingPlace]  = useState(true);
-  const [error,         setError]         = useState(null);
-  const [showModal,     setShowModal]     = useState(false);
+  const [place,           setPlace]           = useState(null);
+  const [experiences,     setExperiences]     = useState([]);
+  const [loadingPlace,    setLoadingPlace]    = useState(true);
+  const [error,           setError]           = useState(null);
+  const [showModal,       setShowModal]       = useState(false);
+  const [confirmDelete,   setConfirmDelete]   = useState(false);
+  const [deleting,        setDeleting]        = useState(false);
+  const [photoIndex,      setPhotoIndex]      = useState(0);
   // Map<expId, emojiKey> — 1 reação por comentário, anulável
   const [userReactions, setUserReactions] = useState(new Map());
 
@@ -126,6 +130,17 @@ export default function PlaceDetailPage() {
     fetchExperiencesByPlace(id)
       .then((data) => setExperiences(Array.isArray(data) ? data : []));
   }, [id]);
+
+  async function handleDeleteConfirm() {
+    setDeleting(true);
+    try {
+      await deletePlace(id);
+      navigate('/locais');
+    } catch {
+      setDeleting(false);
+      setConfirmDelete(false);
+    }
+  }
 
   function handleReact(expId, emoji) {
     const current = userReactions.get(expId);
@@ -168,6 +183,13 @@ export default function PlaceDetailPage() {
     );
   }
 
+  /* computed — fotos */
+  const allPhotos = Array.isArray(place.photos) && place.photos.length > 0
+    ? place.photos
+    : place.coverImage ? [place.coverImage] : [];
+  function prevPhoto() { setPhotoIndex((i) => (i - 1 + allPhotos.length) % allPhotos.length); }
+  function nextPhoto() { setPhotoIndex((i) => (i + 1) % allPhotos.length); }
+
   /* computed */
   const ratingDist = [5,4,3,2,1].map((star) => ({
     star,
@@ -188,6 +210,22 @@ export default function PlaceDetailPage() {
         {/* ── Cabeçalho do card ── */}
         <div className={styles.cardHeader}>
           <Button variant="neutral" size="sm" onClick={() => navigate(-1)}>← Voltar</Button>
+          {isMorador && (
+            <div className={styles.ownerActions}>
+              <button
+                className={styles.btnEdit}
+                onClick={() => navigate(`/morador/locais/${id}/editar`, { state: { returnTo: `/locais/${id}` } })}
+              >
+                Editar Local
+              </button>
+              <button
+                className={styles.btnDelete}
+                onClick={() => setConfirmDelete(true)}
+              >
+                Excluir Local
+              </button>
+            </div>
+          )}
         </div>
 
           {/* ── Info area ── */}
@@ -195,14 +233,43 @@ export default function PlaceDetailPage() {
 
             {/* Info do local */}
             <div className={styles.placeInfo}>
-              <div className={styles.placePhotoWrap}>
-                {place.coverImage
-                  ? <img src={place.coverImage} alt={place.name} className={styles.placePhoto}
-                      onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }} />
-                  : null}
-                <div className={styles.placePhotoFallback}
-                  style={{ display: place.coverImage ? 'none' : 'block' }} />
+              {/* Carrossel de fotos */}
+              <div className={styles.carousel}>
+                {allPhotos.length > 0 ? (
+                  <img
+                    src={allPhotos[photoIndex]}
+                    alt={`${place.name} — foto ${photoIndex + 1}`}
+                    className={styles.placePhoto}
+                    onError={(e) => { e.target.style.display = 'none'; }}
+                  />
+                ) : (
+                  <div className={styles.placePhotoFallback} />
+                )}
+                {allPhotos.length > 1 && (
+                  <>
+                    <button
+                      className={`${styles.carouselBtn} ${styles.carouselBtnPrev}`}
+                      onClick={prevPhoto}
+                      aria-label="Foto anterior"
+                    >‹</button>
+                    <button
+                      className={`${styles.carouselBtn} ${styles.carouselBtnNext}`}
+                      onClick={nextPhoto}
+                      aria-label="Próxima foto"
+                    >›</button>
+                    <span className={styles.carouselDots}>
+                      {allPhotos.map((_, i) => (
+                        <span
+                          key={i}
+                          className={`${styles.dot} ${i === photoIndex ? styles.dotActive : ''}`}
+                          onClick={() => setPhotoIndex(i)}
+                        />
+                      ))}
+                    </span>
+                  </>
+                )}
               </div>
+
               <div className={styles.placeDetails}>
                 <h1 className={styles.placeName}>{place.name}</h1>
                 {place.address && <p className={styles.placeAddr}>{place.address}</p>}
@@ -346,6 +413,30 @@ export default function PlaceDetailPage() {
           onClose={() => setShowModal(false)}
           userReactions={userReactions}
         />
+      )}
+
+      {confirmDelete && (
+        <div className={styles.modalOverlay} onClick={(e) => e.target === e.currentTarget && setConfirmDelete(false)}>
+          <div className={styles.confirmModal}>
+            <h2 className={styles.modalTitle}>Excluir local?</h2>
+            <p style={{ color: 'var(--color-text-muted)', margin: 0 }}>
+              Esta ação não pode ser desfeita. Tem certeza que deseja excluir <strong>{place.name}</strong>?
+            </p>
+            <div className={styles.confirmActions}>
+              <Button variant="neutral" fullWidth onClick={() => setConfirmDelete(false)} disabled={deleting}>
+                Cancelar
+              </Button>
+              <button
+                className={styles.btnDelete}
+                onClick={handleDeleteConfirm}
+                disabled={deleting}
+                style={{ flex: '1 1 0' }}
+              >
+                {deleting ? 'Excluindo...' : 'Excluir'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

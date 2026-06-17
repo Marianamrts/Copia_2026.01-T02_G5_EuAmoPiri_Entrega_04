@@ -13,6 +13,7 @@ vi.mock('../presentation/atoms/StarRating', () => ({
 
 vi.mock('../infra/adaptor/placeAdaptor', () => ({
   deletePlace: vi.fn(),
+  fetchMyPlaces: vi.fn(),
 }))
 vi.mock('../infra/adaptor/experienceAdaptor', () => ({
   fetchMyExperiences: vi.fn(),
@@ -28,10 +29,16 @@ import * as experienceAdaptor from '../infra/adaptor/experienceAdaptor'
 beforeEach(() => {
   vi.mocked(experienceAdaptor.fetchMyExperiences).mockResolvedValue([])
   vi.mocked(placeAdaptor.deletePlace).mockResolvedValue(undefined)
+  vi.mocked(placeAdaptor.fetchMyPlaces).mockResolvedValue([])
   vi.mocked(experienceAdaptor.deleteExperience).mockResolvedValue(undefined)
 })
 
 /* ── fixtures ── */
+const mockPlaces = [
+  { id: 1, name: 'Botequim Mercatto Piri', category: 'gastronomia', price: '$$', rating: 4, reviewsCount: 5, moradorId: 1 },
+  { id: 2, name: 'Cachoeira da Rosário', category: 'natureza', price: '$', rating: 5, reviewsCount: 3, moradorId: 1 },
+]
+
 const mockMorador = {
   id: 1,
   name: 'Anna Brandão',
@@ -286,7 +293,10 @@ describe('ProfilePage — seção de senha', () => {
    Seção Morador — Últimos Relatos e Locais Cadastrados
    ══════════════════════════════════════════════════════════════ */
 describe('ProfilePage — seções do Morador', () => {
-  beforeEach(() => asMorador())
+  beforeEach(() => {
+    asMorador()
+    vi.mocked(placeAdaptor.fetchMyPlaces).mockResolvedValue(mockPlaces)
+  })
 
   it('exibe título "ÚLTIMOS RELATOS"', () => {
     renderPage()
@@ -311,18 +321,22 @@ describe('ProfilePage — seções do Morador', () => {
     expect(screen.getByText('LOCAIS CADASTRADOS')).toBeInTheDocument()
   })
 
-  it('exibe botões "Editar Local" e "Excluir Local" nos locais cadastrados', () => {
+  it('exibe botões "Editar Local" e "Excluir Local" nos locais cadastrados', async () => {
     renderPage()
-    const editButtons = screen.getAllByRole('link', { name: /editar local/i })
-    const deleteButtons = screen.getAllByRole('button', { name: /excluir local/i })
-    expect(editButtons.length).toBeGreaterThan(0)
-    expect(deleteButtons.length).toBeGreaterThan(0)
+    await waitFor(() => {
+      const editButtons = screen.getAllByRole('link', { name: /editar local/i })
+      const deleteButtons = screen.getAllByRole('button', { name: /excluir local/i })
+      expect(editButtons.length).toBeGreaterThan(0)
+      expect(deleteButtons.length).toBeGreaterThan(0)
+    })
   })
 
-  it('exibe nomes dos locais cadastrados', () => {
+  it('exibe nomes dos locais cadastrados', async () => {
     renderPage()
-    expect(screen.getByText('Botequim Mercatto Piri')).toBeInTheDocument()
-    expect(screen.getByText('Cachoeira da Rosário')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText('Botequim Mercatto Piri')).toBeInTheDocument()
+      expect(screen.getByText('Cachoeira da Rosário')).toBeInTheDocument()
+    })
   })
 })
 
@@ -375,13 +389,16 @@ describe('ProfilePage — seções do Turista', () => {
 describe('ProfilePage — exclusão de local (Morador)', () => {
   beforeEach(() => {
     asMorador()
+    vi.mocked(placeAdaptor.fetchMyPlaces).mockResolvedValue(mockPlaces)
     vi.mocked(placeAdaptor.deletePlace).mockResolvedValue(undefined)
   })
 
   it('abre diálogo de confirmação ao clicar em "Excluir Local"', async () => {
     const user = userEvent.setup()
     renderPage()
-
+    await waitFor(() =>
+      expect(screen.getAllByRole('button', { name: /excluir local/i }).length).toBeGreaterThan(0)
+    )
     const deleteButtons = screen.getAllByRole('button', { name: /excluir local/i })
     await user.click(deleteButtons[0])
 
@@ -393,7 +410,9 @@ describe('ProfilePage — exclusão de local (Morador)', () => {
   it('"Cancelar" fecha o diálogo de confirmação', async () => {
     const user = userEvent.setup()
     renderPage()
-
+    await waitFor(() =>
+      expect(screen.getAllByRole('button', { name: /excluir local/i }).length).toBeGreaterThan(0)
+    )
     const deleteButtons = screen.getAllByRole('button', { name: /excluir local/i })
     await user.click(deleteButtons[0])
 
@@ -411,7 +430,9 @@ describe('ProfilePage — exclusão de local (Morador)', () => {
   it('após confirmar: exibe "❤ EuAmoPiri" e "Local excluído com sucesso!"', async () => {
     const user = userEvent.setup()
     renderPage()
-
+    await waitFor(() =>
+      expect(screen.getAllByRole('button', { name: /excluir local/i }).length).toBeGreaterThan(0)
+    )
     const deleteButtons = screen.getAllByRole('button', { name: /excluir local/i })
     await user.click(deleteButtons[0])
 
@@ -430,7 +451,9 @@ describe('ProfilePage — exclusão de local (Morador)', () => {
   it('clicar em "Fechar" no estado de sucesso fecha o modal', async () => {
     const user = userEvent.setup()
     renderPage()
-
+    await waitFor(() =>
+      expect(screen.getAllByRole('button', { name: /excluir local/i }).length).toBeGreaterThan(0)
+    )
     const deleteButtons = screen.getAllByRole('button', { name: /excluir local/i })
     await user.click(deleteButtons[0])
     await waitFor(() =>
@@ -452,7 +475,9 @@ describe('ProfilePage — exclusão de local (Morador)', () => {
     vi.mocked(placeAdaptor.deletePlace).mockRejectedValue(new Error('Servidor indisponível'))
     const user = userEvent.setup()
     renderPage()
-
+    await waitFor(() =>
+      expect(screen.getAllByRole('button', { name: /excluir local/i }).length).toBeGreaterThan(0)
+    )
     const deleteButtons = screen.getAllByRole('button', { name: /excluir local/i })
     await user.click(deleteButtons[0])
     await waitFor(() =>
@@ -470,7 +495,9 @@ describe('ProfilePage — exclusão de local (Morador)', () => {
     vi.mocked(placeAdaptor.deletePlace).mockRejectedValue(new Error('Erro'))
     const user = userEvent.setup()
     renderPage()
-
+    await waitFor(() =>
+      expect(screen.getAllByRole('button', { name: /excluir local/i }).length).toBeGreaterThan(0)
+    )
     const deleteButtons = screen.getAllByRole('button', { name: /excluir local/i })
     await user.click(deleteButtons[0])
     await waitFor(() =>

@@ -1,23 +1,49 @@
-/**
- * CAMADA CONTEXTO — AuthContext
- *
- * Gerencia o estado global de autenticação da aplicação.
- * Reutilizado por: ProtectedRoute, Header, qualquer componente
- * que precise saber se o usuário está logado e qual seu papel.
- *
- * Reutilização (Atomic Design → Context): este hook centraliza
- * a lógica de auth, evitando que cada componente acesse o
- * localStorage diretamente.
- */
-import { createContext, useContext, useState, useCallback } from 'react';
-import { getCurrentUser, login, logout, register, updateProfile } from '../infra/adaptor/authAdaptor';
+import { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import {
+  getCurrentUser,
+  getToken,
+  login,
+  logout,
+  register,
+  updateProfile,
+  fetchMe,
+} from '../api/auth/authFacade';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(() => getCurrentUser());
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [user, setUser]       = useState(() => getCurrentUser());
+  const [loading, setLoading] = useState(Boolean(getToken()));
+  const [error, setError]     = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function bootstrap() {
+      const token = getToken();
+      if (!token) { setLoading(false); return; }
+
+      try {
+        const me = await fetchMe();
+        if (!cancelled) setUser(me);
+      } catch (err) {
+        if (!cancelled) {
+          // 401 = token inválido/expirado → desloga
+          // Outros erros (rede, backend fora) → mantém sessão local em cache
+          const status = err?.response?.status ?? err?.status;
+          if (status === 401) {
+            await logout();
+            setUser(null);
+          }
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    bootstrap();
+    return () => { cancelled = true; };
+  }, []);
 
   const handleLogin = useCallback(async (credentials) => {
     setLoading(true);
@@ -54,36 +80,35 @@ export function AuthProvider({ children }) {
     setUser(null);
   }, []);
 
-  const handleUpdateProfile = useCallback(async (profileData) => {
+  const handleUpdateProfile = useCallback(async (profileData, photoFile) => {
     if (!user) return;
-    const updated = await updateProfile(user.id, profileData);
-    setUser(updated);
-    return updated;
+    try {
+      const { user: updated } = await updateProfile(profileData, photoFile);
+      setUser(updated);
+      return updated;
+    } catch (err) {
+      throw err;
+    }
   }, [user]);
-
-  const isAuthenticated = Boolean(user);
-  const isMorador = user?.role === 'morador';
-  const isTurista = user?.role === 'turista';
 
   return (
     <AuthContext.Provider value={{
       user,
       loading,
       error,
-      isAuthenticated,
-      isMorador,
-      isTurista,
-      login: handleLogin,
-      register: handleRegister,
-      logout: handleLogout,
-      updateProfile: handleUpdateProfile,
+      isAuthenticated: Boolean(user),
+      isMorador:       user?.role === 'morador',
+      isTurista:       user?.role === 'turista',
+      login:           handleLogin,
+      register:        handleRegister,
+      logout:          handleLogout,
+      updateProfile:   handleUpdateProfile,
     }}>
       {children}
     </AuthContext.Provider>
   );
 }
 
-/** Hook de conveniência — reutilizado em todos os componentes que precisam de auth */
 export function useAuth() {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error('useAuth deve ser usado dentro de <AuthProvider>');

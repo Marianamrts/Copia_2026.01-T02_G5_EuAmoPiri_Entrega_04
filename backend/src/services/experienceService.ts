@@ -145,3 +145,7 @@ export async function listExperiencesByPlace(placeId: number) {
     return experienceModel.findAllExperiencesByPlaceId(placeId);
 }
 
+export async function listMyExperiences(userId: number) {
+    return experienceModel.findExperiencesByUserId(userId);
+}
+

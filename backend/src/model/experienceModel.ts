@@ -26,6 +26,17 @@ export async function findAllExperiencesByPlaceId(placeId: number) {
     });
 }
 
+export async function findExperiencesByUserId(userId: number) {
+    return prisma.experiences.findMany({
+        where: { userId },
+        include: {
+            ...experienceInclude,
+            place: { select: { id: true, name: true } },
+        },
+        orderBy: { createdAt: "desc" },
+    });
+}
+
 export async function findExperiencePhotoById(experienceId: number, photoId: number) {
     return prisma.experiencePhoto.findFirst({
         where: { id: photoId, experienceId },

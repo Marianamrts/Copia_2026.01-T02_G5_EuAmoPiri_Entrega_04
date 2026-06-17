@@ -4,6 +4,7 @@ import prisma from "../config/prisma.ts";
 const placeInclude = {
     photos: { orderBy: { sortOrder: "asc" as const } },
     morador: { select: { id: true, name: true } },
+    experiences: { select: { rating: true } },
 };
 
 export async function createPlaceWithPhotos(

@@ -9,7 +9,20 @@ const CATEGORY_LABELS: Record<string, string> = {
 type PlaceWithPhotos = Place & {
     photos?: PlacePhoto[];
     morador?: { id: number; name: string };
+    experiences?: { rating: number }[];
 };
+
+function computeRatingStats(experiences: { rating: number }[] = []) {
+    const reviewsCount = experiences.length;
+    if (reviewsCount === 0) {
+        return { rating: null as number | null, reviewsCount: 0 };
+    }
+    const sum = experiences.reduce((acc, e) => acc + e.rating, 0);
+    return {
+        rating: Math.round((sum / reviewsCount) * 10) / 10,
+        reviewsCount,
+    };
+}
 
 function formatPhoto(photo: PlacePhoto, placeId: number) {
     return {
@@ -21,6 +34,7 @@ function formatPhoto(photo: PlacePhoto, placeId: number) {
 
 export function formatPlace(place: PlaceWithPhotos) {
     const category = CATEGORY_LABELS[place.category] ?? place.category.toLowerCase();
+    const { rating, reviewsCount } = computeRatingStats(place.experiences);
     return {
         id: place.id,
         name: place.name,
@@ -32,6 +46,8 @@ export function formatPlace(place: PlaceWithPhotos) {
         openingDate: place.openingDate,
         moradorId: place.moradorId,
         moradorName: place.morador?.name,
+        rating,
+        reviewsCount,
         coverImage: place.photos?.[0]
             ? `/places/${place.id}/photos/${place.photos[0].id}`
             : null,

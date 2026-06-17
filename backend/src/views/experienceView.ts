@@ -4,6 +4,10 @@ type ExperienceWithPhotos = Experiences & {
     photos?: ExperiencePhoto[];
 };
 
+type ExperienceWithPlace = ExperienceWithPhotos & {
+    place?: { id: number; name: string };
+};
+
 function formatPhoto(photo: ExperiencePhoto, placeId: number, experienceId: number) {
     return {
         id: photo.id,
@@ -31,4 +35,11 @@ export function formatExperience(experience: ExperienceWithPhotos, placeId?: num
 
 export function formatExperienceList(experiences: ExperienceWithPhotos[], placeId?: number) {
     return experiences.map((e) => formatExperience(e, placeId));
+}
+
+export function formatMyExperienceList(experiences: ExperienceWithPlace[]) {
+    return experiences.map((experience) => ({
+        ...formatExperience(experience),
+        placeName: experience.place?.name ?? "Local",
+    }));
 }

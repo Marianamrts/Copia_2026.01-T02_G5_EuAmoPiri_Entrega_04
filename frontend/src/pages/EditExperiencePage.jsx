@@ -50,11 +50,9 @@ export default function EditExperiencePage() {
             loading={saving}
             defaultValues={experience ?? {}}
             successTitle="Avaliação atualizada com sucesso!"
-            successText="Suas edições já estão disponíveis no local."
             successPrimary={{ label: 'Voltar ao meu perfil', to: '/perfil' }}
             successSecondary={null}
             errorTitle="Falha ao atualizar avaliação"
-            errorText="Revise os dados e tente novamente."
           />
         </div>
       </div>

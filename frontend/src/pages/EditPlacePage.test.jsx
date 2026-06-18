@@ -9,6 +9,7 @@ vi.mock('react-router-dom', async (importOriginal) => {
     ...actual,
     useParams: () => ({ id: '1' }),
     useNavigate: () => vi.fn(),
+    useLocation: () => ({ state: null }),
   }
 })
 
@@ -48,10 +49,10 @@ describe('EditPlacePage', () => {
     )
   })
 
-  it('exibe botão "← Voltar ao perfil"', async () => {
+  it('exibe botão "← Voltar"', async () => {
     renderPage()
     await waitFor(() =>
-      expect(screen.getByRole('link', { name: /← Voltar ao perfil/i })).toBeInTheDocument()
+      expect(screen.getByRole('link', { name: /← Voltar/i })).toBeInTheDocument()
     )
   })
 

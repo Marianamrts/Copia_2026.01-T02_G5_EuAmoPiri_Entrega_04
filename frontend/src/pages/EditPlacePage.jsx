@@ -8,6 +8,16 @@ import PhotoUploadField from '../presentation/molecules/PhotoUploadField';
 import Spinner from '../presentation/atoms/Spinner';
 import { CREATE_PLACE_CATEGORY_OPTIONS } from '../utils/placeCategories';
 import styles from './EditPlacePage.module.css';
+import createStyles from './CreatePlacePage.module.css';
+
+const CATEGORY_OPTIONS = [
+  { value: 'gastronomia', label: 'Gastronomia' },
+  { value: 'natureza',    label: 'Natureza' },
+  { value: 'hospedagem',  label: 'Hospedagem' },
+  { value: 'cultura',     label: 'Cultura' },
+  { value: 'compras',     label: 'Compras' },
+  { value: 'aventura',    label: 'Aventura' },
+];
 
 const CATEGORIES = CREATE_PLACE_CATEGORY_OPTIONS;
 
@@ -59,11 +69,37 @@ export default function EditPlacePage() {
         setExistingPhotos(place.photos ?? []);
         setLoading(false);
       })
-      .catch(() => {
-        setLoadErr('Local não encontrado.');
-        setLoading(false);
-      });
+      .finally(() => setLoading(false));
   }, [id, reset]);
+
+  /* ── Gerenciamento de fotos ── */
+  function addFiles(fileList) {
+    const remaining = 3 - allPhotos.length;
+    if (remaining <= 0) return;
+    const newItems = Array.from(fileList)
+      .filter((f) => f.type.startsWith('image/'))
+      .slice(0, remaining)
+      .map((file) => ({ url: URL.createObjectURL(file), isNew: true }));
+    setAllPhotos((prev) => [...prev, ...newItems]);
+  }
+
+  function removePhoto(index) {
+    setAllPhotos((prev) => {
+      if (prev[index].isNew) URL.revokeObjectURL(prev[index].url);
+      return prev.filter((_, i) => i !== index);
+    });
+  }
+
+  function setCover(index) {
+    setAllPhotos((prev) => {
+      const next = [...prev];
+      const [chosen] = next.splice(index, 1);
+      return [chosen, ...next];
+    });
+  }
+
+  function handleFileChange(e) { addFiles(e.target.files); e.target.value = ''; }
+  function handleDrop(e) { e.preventDefault(); setDragOver(false); addFiles(e.dataTransfer.files); }
 
   async function onSubmit(data) {
     setPhotoError('');
@@ -138,9 +174,11 @@ export default function EditPlacePage() {
             <p className={styles.resultLogo}>❤ EuAmoPiri</p>
             <span className={styles.resultIcon} aria-hidden="true">✓</span>
             <h2 className={styles.resultTitle}>Local atualizado com sucesso!</h2>
-            <p className={styles.resultText}>As informações do local já estão disponíveis para os visitantes.</p>
+            <p className={styles.resultText}>As alterações foram salvas.</p>
             <div className={styles.resultActions}>
-              <Button variant="primary" fullWidth as={Link} to="/perfil">Voltar ao meu perfil</Button>
+              <Button variant="primary" fullWidth as={Link} to={returnTo}>
+                {returnTo.startsWith('/locais/') ? 'Ver local' : returnTo === '/locais' ? 'Voltar a Locais' : 'Voltar ao meu perfil'}
+              </Button>
             </div>
           </div>
         </div>
@@ -162,9 +200,9 @@ export default function EditPlacePage() {
 
       {(submitStatus === 'error' || submitStatus === 'forbidden') && (
         <div className={styles.resultOverlay} role="dialog" aria-modal="true">
-          <div className={`${styles.resultCard} ${styles.resultCardError}`}>
+          <div className={styles.resultCard}>
             <p className={styles.resultLogo}>❤ EuAmoPiri</p>
-            <span className={`${styles.resultIcon} ${styles.resultIconError}`} aria-hidden="true">⚠️</span>
+            <span className={styles.resultIcon} aria-hidden="true">⚠️</span>
             <h2 className={styles.resultTitle}>Falha ao salvar alterações</h2>
             <p className={styles.resultText}>
               {submitStatus === 'forbidden'
@@ -172,7 +210,9 @@ export default function EditPlacePage() {
                 : 'Revise os dados e tente novamente.'}
             </p>
             <div className={styles.resultActions}>
-              <Button variant="neutral" fullWidth onClick={() => setSubmitStatus(null)}>Voltar ao formulário</Button>
+              <Button variant="neutral" fullWidth onClick={() => setSubmitStatus(null)}>
+                Voltar ao formulário
+              </Button>
             </div>
           </div>
         </div>
@@ -181,12 +221,12 @@ export default function EditPlacePage() {
       <div className={styles.container}>
 
         <nav>
-          <Button variant="neutral" size="sm" as={Link} to="/perfil">
-            ← Voltar ao perfil
+          <Button variant="neutral" size="sm" as={Link} to={returnTo}>
+            ← Voltar
           </Button>
         </nav>
 
-        <h1 className={styles.title}>Editar Local</h1>
+        <h1 className={styles.title}>Editar local</h1>
 
         <form className={styles.formCard} onSubmit={handleSubmit(onSubmit)} noValidate>
 
@@ -208,7 +248,6 @@ export default function EditPlacePage() {
           )}
 
           <div className={styles.formGrid}>
-
             <FormField
               id="name"
               label="Nome do local"
@@ -230,7 +269,18 @@ export default function EditPlacePage() {
               })}
               error={errors.address?.message}
             />
-
+            <div className={styles.selectGroup}>
+              <label className={styles.selectLabel} htmlFor="price">Faixa de preço</label>
+              <select
+                id="price"
+                className={styles.select}
+                {...register('price')}
+              >
+                {PRICE_OPTIONS.map((p) => (
+                  <option key={p} value={p}>{p}</option>
+                ))}
+              </select>
+            </div>
             <FormField
               id="phone"
               label="Telefone"
@@ -294,20 +344,13 @@ export default function EditPlacePage() {
           />
 
           <div className={styles.formActions}>
-            <Button
-              variant="neutral"
-              type="button"
-              as={Link}
-              to="/perfil"
-              disabled={saving}
-            >
+            <Button variant="neutral" type="button" onClick={() => navigate(returnTo)}>
               Cancelar
             </Button>
             <Button variant="primary" type="submit" loading={saving}>
               Salvar alterações
             </Button>
           </div>
-
         </form>
       </div>
     </div>

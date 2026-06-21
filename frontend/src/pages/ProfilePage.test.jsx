@@ -456,6 +456,14 @@ describe('ProfilePage — seções do Turista', () => {
     })
   })
 
+  it('link "Editar relato" aponta para a rota correta', async () => {
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getAllByRole('link', { name: /editar relato/i })[0])
+        .toHaveAttribute('href', '/locais/1/relatos/2/editar')
+    })
+  })
+
   it('NÃO exibe seção "LOCAIS CADASTRADOS" para turista', () => {
     renderPage()
     expect(screen.queryByText('LOCAIS CADASTRADOS')).not.toBeInTheDocument()

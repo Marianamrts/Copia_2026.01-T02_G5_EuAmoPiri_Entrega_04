@@ -23,8 +23,9 @@ vi.mock('react-leaflet', () => ({
 }))
 
 vi.mock('../infra/adaptor/placeAdaptor')
-vi.mock('../infra/adaptor/experienceAdaptor', () => ({
-  fetchExperiencesByPlaces: vi.fn(),
+vi.mock('../infra/placesCatalog', () => ({
+  loadPlacesCatalog: vi.fn(),
+  peekPlacesCatalog: vi.fn(),
 }))
 vi.mock('../context/AuthContext')
 vi.mock('../presentation/atoms/StarRating', () => ({
@@ -34,8 +35,7 @@ vi.mock('../presentation/atoms/Spinner', () => ({
   default: () => <div data-testid="spinner" />,
 }))
 
-import { fetchPlaces } from '../infra/adaptor/placeAdaptor'
-import { fetchExperiencesByPlaces } from '../infra/adaptor/experienceAdaptor'
+import { loadPlacesCatalog, peekPlacesCatalog } from '../infra/placesCatalog'
 import { useAuth } from '../context/AuthContext'
 import PlacesPage from './PlacesPage'
 
@@ -70,16 +70,25 @@ const renderPage = () =>
   render(<MemoryRouter><PlacesPage /></MemoryRouter>)
 
 beforeEach(() => {
+  vi.clearAllMocks()
   vi.mocked(useAuth).mockReturnValue({ isMorador: false, isAuthenticated: false })
-  vi.mocked(fetchPlaces).mockResolvedValue(MOCK_PLACES)
-  vi.mocked(fetchExperiencesByPlaces).mockResolvedValue([])
+  vi.mocked(peekPlacesCatalog).mockReturnValue(null)
+  vi.mocked(loadPlacesCatalog).mockResolvedValue(MOCK_PLACES)
 })
 
 describe('PlacesPage — RF06', () => {
   it('exibe spinner enquanto carrega', () => {
-    vi.mocked(fetchPlaces).mockReturnValue(new Promise(() => {}))
+    vi.mocked(peekPlacesCatalog).mockReturnValue(null)
+    vi.mocked(loadPlacesCatalog).mockReturnValue(new Promise(() => {}))
     renderPage()
     expect(screen.getAllByTestId('spinner').length).toBeGreaterThan(0)
+  })
+
+  it('reutiliza cache em memória ao remontar a página', async () => {
+    vi.mocked(peekPlacesCatalog).mockReturnValue(MOCK_PLACES)
+    renderPage()
+    expect(await screen.findByText('Botequim Mercatto Piri')).toBeInTheDocument()
+    expect(loadPlacesCatalog).not.toHaveBeenCalled()
   })
 
   it('lista locais do banco (Google + comunidade)', async () => {

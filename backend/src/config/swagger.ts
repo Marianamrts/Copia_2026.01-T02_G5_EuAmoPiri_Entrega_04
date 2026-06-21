@@ -42,7 +42,7 @@ const options = {
                     type: "object",
                     properties: {
                         id: { type: "integer" },
-                        accountType: { type: "string", enum: ["TURISTA", "MORADOR"], nullable: true },
+                        accountType: { type: "string", enum: ["TURISTA", "MORADOR", "ADMIN"], nullable: true },
                         name: { type: "string" },
                         email: { type: "string" },
                         birthDate: { type: "string", format: "date-time", nullable: true },
@@ -113,6 +113,21 @@ const options = {
                             },
                         },
                         createdAt: { type: "string", format: "date-time" },
+                    },
+                },
+                GoogleSyncResult: {
+                    type: "object",
+                    description: "Resultado de POST /places/gmaps/sync",
+                    properties: {
+                        synced: {
+                            type: "integer",
+                            description: "Total de locais upsertados nesta execução",
+                        },
+                        perCategory: {
+                            type: "object",
+                            additionalProperties: { type: "integer" },
+                            example: { cachoeira: 29, restaurante: 40, pousada: 18 },
+                        },
                     },
                 },
                 GooglePlace: {

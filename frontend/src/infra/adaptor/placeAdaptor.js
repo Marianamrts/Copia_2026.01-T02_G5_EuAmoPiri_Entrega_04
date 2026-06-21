@@ -7,6 +7,7 @@
 import apiClient, { postFormData, patchFormData } from '../../api/client';
 
 import { resolveMediaUrl } from '../../utils/mediaUrl';
+import { invalidatePlacesCatalog } from '../placesCatalogCache';
 
 
 
@@ -122,6 +123,8 @@ export async function createPlace(placeData) {
 
   const data = await postFormData('/places', fd);
 
+  invalidatePlacesCatalog();
+
   return mapPlace(data);
 
 }
@@ -132,6 +135,8 @@ export async function updatePlace(id, formData) {
 
   const data = await patchFormData(`/places/${id}`, formData);
 
+  invalidatePlacesCatalog();
+
   return mapPlace(data);
 
 }
@@ -141,6 +146,8 @@ export async function updatePlace(id, formData) {
 export async function deletePlace(id) {
 
   await apiClient.delete(`/places/${id}`);
+
+  invalidatePlacesCatalog();
 
   return { success: true };
 

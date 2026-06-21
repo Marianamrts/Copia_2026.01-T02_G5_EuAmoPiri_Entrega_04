@@ -4,6 +4,7 @@
 import apiClient, { postFormData, patchFormData } from '../../api/client';
 import { fetchPlaces } from './placeAdaptor';
 import { resolveMediaUrl } from '../../utils/mediaUrl';
+import { invalidatePlacesCatalog } from '../placesCatalogCache';
 
 function mapExperience(exp) {
   return {
@@ -138,6 +139,7 @@ export async function createExperience(placeId, experienceData, photoFiles = [])
   });
 
   const data = await postFormData(`/places/${placeId}/experiences`, formData);
+  invalidatePlacesCatalog();
   return mapExperience(data);
 }
 
@@ -153,6 +155,7 @@ export async function updateExperience(placeId, experienceId, experienceData, ph
     `/places/${placeId}/experiences/${experienceId}`,
     formData
   );
+  invalidatePlacesCatalog();
   return mapExperience(data);
 }
 
@@ -163,6 +166,7 @@ export async function deleteExperience(placeId, experienceId) {
     const idx = MOCK_EXPERIENCES.findIndex((e) => String(e.id) === String(experienceId));
     if (idx !== -1) MOCK_EXPERIENCES.splice(idx, 1);
   }
+  invalidatePlacesCatalog();
   return { success: true };
 }
 

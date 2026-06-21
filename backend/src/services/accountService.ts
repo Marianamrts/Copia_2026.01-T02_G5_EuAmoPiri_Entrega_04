@@ -69,7 +69,7 @@ export async function deleteAccount(
 
     const user = await userModel.findByIdForDeletion(targetUserId);
     if (!user) {
-        throw new AccountError("Usuário não encontrado", 404);
+        throw new AccountError("Usuário não encontrado", 404, "USER_NOT_FOUND");
     }
 
     const photoKeys = collectDeletionPhotoKeys(user);

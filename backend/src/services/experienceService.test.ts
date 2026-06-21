@@ -29,10 +29,11 @@ describe("experienceService validation", () => {
     });
 
     it("RNF02: rejeita blacklist", async () => {
+        const text = "Lugar idiota demais. " + "a".repeat(79);
         await expect(
             validateExperienceInput(
                 1,
-                { rating: 4, text: "Lugar idiota demais", visitDate: "2026-06-01" },
+                { rating: 4, text, visitDate: "2026-06-01" },
                 []
             )
         ).rejects.toMatchObject({ code: "BLACKLISTED_CONTENT" });

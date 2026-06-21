@@ -1,6 +1,6 @@
 import { Router } from "express";
 import * as authController from "../controllers/authController.ts";
-import { authMiddleware } from "../middleware/authMiddleware.ts";
+import { authMiddleware, authMiddlewareAllowDeletedUser } from "../middleware/authMiddleware.ts";
 import {
     profilePhotoUpload,
     handleProfilePhotoUploadError,
@@ -240,7 +240,7 @@ router.get("/me/experiences", authMiddleware, authController.getMyExperiences);
  *       404:
  *         description: Usuário não encontrado
  */
-router.delete("/me", authMiddleware, authController.deleteMyAccount);
+router.delete("/me", authMiddlewareAllowDeletedUser, authController.deleteMyAccount);
 
 /**
  * @openapi
@@ -268,6 +268,6 @@ router.delete("/me", authMiddleware, authController.deleteMyAccount);
  *       404:
  *         description: Usuário não encontrado
  */
-router.delete("/users/:id", authMiddleware, authController.deleteUserById);
+router.delete("/users/:id", authMiddlewareAllowDeletedUser, authController.deleteUserById);
 
 export default router;

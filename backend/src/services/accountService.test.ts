@@ -97,6 +97,7 @@ describe("accountService deleteAccount", () => {
             deleteAccount(5, { id: 5, accountType: "TURISTA" })
         ).rejects.toMatchObject({
             statusCode: 404,
+            code: "USER_NOT_FOUND",
         });
 
         expect(userModel.deleteUser).not.toHaveBeenCalled();

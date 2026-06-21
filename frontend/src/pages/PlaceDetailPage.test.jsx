@@ -36,9 +36,10 @@ const MOCK_PLACE = {
 
 const MOCK_EXPERIENCES = [
   {
-    id: 1, placeId: 1, userName: 'Maria Silva',
+    id: 1, placeId: 1, userId: 99, userName: 'Maria Silva',
     text: 'Experiência maravilhosa! Vale muito a visita.',
     rating: 5, visitDate: '2026-05-08',
+    commentsCount: 1,
     reactions: { heart: 3, like: 1 },
     createdAt: new Date('2026-06-09').toISOString(),
   },
@@ -55,6 +56,28 @@ describe('PlaceDetailPage — RF06 detalhe / RF13 emojis / RF12 relatos', () => 
     vi.mocked(placeAdaptor.fetchPlaceById).mockResolvedValue(MOCK_PLACE)
     vi.mocked(expAdaptor.fetchExperiencesByPlace).mockResolvedValue(MOCK_EXPERIENCES)
     vi.mocked(expAdaptor.reactToExperience).mockResolvedValue({ success: true })
+    vi.mocked(expAdaptor.fetchCommentsByExperience).mockResolvedValue([
+      {
+        id: 10,
+        userId: 88,
+        userName: 'Pedro',
+        text: 'Concordo totalmente!',
+        createdAt: new Date('2026-06-10').toISOString(),
+      },
+    ])
+    vi.mocked(expAdaptor.createComment).mockResolvedValue({
+      id: 11,
+      userId: 2,
+      userName: 'João',
+      text: 'Ótima dica, obrigado!',
+      createdAt: new Date().toISOString(),
+    })
+    vi.mocked(expAdaptor.reportExperience).mockResolvedValue({
+      message: 'Denúncia recebida! O relato foi sinalizado para revisão.',
+    })
+    vi.mocked(expAdaptor.reportComment).mockResolvedValue({
+      message: 'Denúncia recebida! O comentário foi sinalizado para revisão.',
+    })
   })
 
   /* ─── RF06: informações do local ─── */
@@ -82,6 +105,17 @@ describe('PlaceDetailPage — RF06 detalhe / RF13 emojis / RF12 relatos', () => 
     expect(screen.getByText(/estrada da rosário/i)).toBeInTheDocument()
   })
 
+  it('exibe foto do local usando a URL resolvida de photos', async () => {
+    vi.mocked(placeAdaptor.fetchPlaceById).mockResolvedValue({
+      ...MOCK_PLACE,
+      photos: [{ id: 10, sortOrder: 0, url: '/api/places/1/photos/10' }],
+    })
+    renderPage()
+    await screen.findByText('Cachoeira da Rosário')
+    const img = screen.getByRole('img', { name: /cachoeira da rosário — foto 1/i })
+    expect(img).toHaveAttribute('src', '/api/places/1/photos/10')
+  })
+
   it('exibe mensagem de erro se local não for encontrado', async () => {
     vi.mocked(placeAdaptor.fetchPlaceById).mockRejectedValue(new Error('Local não encontrado'))
     renderPage()
@@ -99,6 +133,21 @@ describe('PlaceDetailPage — RF06 detalhe / RF13 emojis / RF12 relatos', () => 
     renderPage()
     await screen.findByText('Maria Silva')
     expect(screen.getByText(/experiência maravilhosa/i)).toBeInTheDocument()
+  })
+
+  it('trunca relato longo e exibe botão ler mais', async () => {
+    const longText = 'a'.repeat(200)
+    vi.mocked(expAdaptor.fetchExperiencesByPlace).mockResolvedValue([
+      { ...MOCK_EXPERIENCES[0], text: longText },
+    ])
+    const user = userEvent.setup()
+    renderPage()
+    await screen.findByText('Maria Silva')
+
+    expect(screen.queryByText(longText)).not.toBeInTheDocument()
+    expect(screen.getByText(`${'a'.repeat(150)}…`, { exact: false })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /ler mais/i }))
+    expect(screen.getByText(longText)).toBeInTheDocument()
   })
 
   it('exibe hint de login para usuários não autenticados', async () => {
@@ -136,17 +185,17 @@ describe('PlaceDetailPage — RF06 detalhe / RF13 emojis / RF12 relatos', () => 
     expect(screen.getAllByRole('link', { name: /cadastrar relato/i }).length).toBeGreaterThan(0)
   })
 
-  it('exibe link Cadastrar relato para morador autenticado', async () => {
+  it('não exibe link Cadastrar relato para morador autenticado', async () => {
     vi.mocked(AuthContext.useAuth).mockReturnValue({
       isAuthenticated: true, isTurista: false, isMorador: true, user: { name: 'Morador' },
     })
     renderPage()
     await screen.findByText('Cachoeira da Rosário')
-    const link = screen.getAllByRole('link', { name: /cadastrar relato/i })[0]
-    expect(link).toHaveAttribute('href', '/locais/1/relatos/novo')
+    expect(screen.queryByRole('link', { name: /cadastrar relato/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /^\+ relato$/i })).not.toBeInTheDocument()
   })
 
-  it('não exibe link de cadastrar relato para usuários autenticados sem papel turista/morador', async () => {
+  it('não exibe link de cadastrar relato para usuários autenticados sem papel turista', async () => {
     vi.mocked(AuthContext.useAuth).mockReturnValue({
       isAuthenticated: true, isTurista: false, isMorador: false, user: { name: 'Outro' },
     })
@@ -237,5 +286,105 @@ describe('PlaceDetailPage — RF06 detalhe / RF13 emojis / RF12 relatos', () => 
     renderPage()
     await screen.findByText('Maria Silva')
     expect(screen.queryByLabelText(/não gostei/i)).not.toBeInTheDocument()
+  })
+
+  it('exibe menu de denúncia para turista em relato de outro usuário', async () => {
+    vi.mocked(AuthContext.useAuth).mockReturnValue({
+      isAuthenticated: true,
+      isTurista: true,
+      isMorador: false,
+      canReport: true,
+      user: { id: 2, name: 'João' },
+    })
+    renderPage()
+    await screen.findByText('Maria Silva')
+    expect(screen.getByRole('button', { name: /opções do relato/i })).toBeInTheDocument()
+  })
+
+  it('envia denúncia de relato ao confirmar no modal', async () => {
+    vi.mocked(AuthContext.useAuth).mockReturnValue({
+      isAuthenticated: true,
+      isTurista: true,
+      isMorador: false,
+      canReport: true,
+      user: { id: 2, name: 'João' },
+    })
+    const user = userEvent.setup()
+    renderPage()
+    await screen.findByText('Maria Silva')
+
+    await user.click(screen.getByRole('button', { name: /opções do relato/i }))
+    await user.click(screen.getByRole('menuitem', { name: /denunciar/i }))
+    await user.click(screen.getByRole('button', { name: /enviar denúncia/i }))
+
+    await waitFor(() => {
+      expect(expAdaptor.reportExperience).toHaveBeenCalledWith('1', 1, {
+        reason: 'FALSO',
+        description: undefined,
+      })
+      expect(screen.getByRole('heading', { name: /denúncia recebida/i })).toBeInTheDocument()
+    })
+  })
+
+  it('permite denunciar comentário de um relato', async () => {
+    vi.mocked(AuthContext.useAuth).mockReturnValue({
+      isAuthenticated: true,
+      isTurista: true,
+      isMorador: false,
+      canReport: true,
+      user: { id: 2, name: 'João' },
+    })
+    const user = userEvent.setup()
+    renderPage()
+    await screen.findByText('Maria Silva')
+
+    await user.click(screen.getByRole('button', { name: /comentar, 1 comentário/i }))
+    await waitFor(() => expect(screen.getByText('Pedro')).toBeInTheDocument())
+
+    await user.click(screen.getByRole('button', { name: /opções do comentário/i }))
+    await user.click(screen.getByRole('menuitem', { name: /denunciar/i }))
+    await user.click(screen.getByRole('button', { name: /enviar denúncia/i }))
+
+    await waitFor(() => {
+      expect(expAdaptor.reportComment).toHaveBeenCalledWith('1', 1, 10, {
+        reason: 'FALSO',
+        description: undefined,
+      })
+    })
+  })
+
+  it('turista pode publicar comentário em relato de outro usuário', async () => {
+    vi.mocked(expAdaptor.fetchExperiencesByPlace).mockResolvedValue([
+      {
+        id: 1, placeId: 1, userId: 99, userName: 'Maria Silva',
+        text: 'Experiência maravilhosa! Vale muito a visita.',
+        rating: 5, visitDate: '2026-05-08',
+        commentsCount: 0,
+        reactions: { heart: 3, like: 1 },
+        createdAt: new Date('2026-06-09').toISOString(),
+      },
+    ])
+    vi.mocked(AuthContext.useAuth).mockReturnValue({
+      isAuthenticated: true,
+      isTurista: true,
+      isMorador: false,
+      canReport: true,
+      user: { id: 2, name: 'João' },
+    })
+    const user = userEvent.setup()
+    renderPage()
+    await screen.findByText('Maria Silva')
+
+    await user.click(screen.getByRole('button', { name: /comentar, 0 comentários/i }))
+    await user.type(
+      screen.getByPlaceholderText(/compartilhe sua opinião sobre este relato/i),
+      'Ótima dica, obrigado!'
+    )
+    await user.click(screen.getByRole('button', { name: /publicar comentário/i }))
+
+    await waitFor(() => {
+      expect(expAdaptor.createComment).toHaveBeenCalledWith('1', 1, 'Ótima dica, obrigado!')
+      expect(screen.getByText('Ótima dica, obrigado!')).toBeInTheDocument()
+    })
   })
 })

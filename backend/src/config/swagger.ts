@@ -1,5 +1,11 @@
 import swaggerJsdoc from "swagger-jsdoc";
 
+const API_URL = process.env.API_URL?.replace(/\/$/, "");
+
+const servers = API_URL
+    ? [{ url: API_URL, description: "Produção" }]
+    : [{ url: "/", description: "Servidor atual" }];
+
 const options = {
     definition: {
         openapi: "3.0.0",
@@ -8,12 +14,7 @@ const options = {
             version: "1.0.0",
             description: "API REST do Eu Amo Piri — locais, experiências e autenticação",
         },
-        servers: [
-            {
-                url: "http://localhost:3000",
-                description: "Desenvolvimento local",
-            },
-        ],
+        servers,
         components: {
             securitySchemes: {
                 BearerAuth: {

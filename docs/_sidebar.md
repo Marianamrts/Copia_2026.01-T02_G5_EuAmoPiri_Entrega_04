@@ -1,15 +1,59 @@
 <!-- docs/_sidebar.md -->
 
+
+
 - [Home](/docs)
+
 - [Projetos](/docs/Projeto/Projeto.md)
 
-- **Arquitetura de Software & Reutilização (Vale Até um Ponto na Média Ponderada - Vide Plano de Ensino)**
-  - [4. Desenho de Software (Arquitetura & Reutilização de Software)](/docs/ArquiteturaReutilizacao/4.ArquiteturaReutilizacao.md)
-    - [4.1. DAS](/docs/ArquiteturaReutilizacao/4.1.DAS.md)
-    - [4.2. Reutilização de Software](/docs/ArquiteturaReutilizacao/4.2.ReutilizacaoDeSoftware.md)
-    - [4.4. Autenticação (Visão Arquitetural)](/docs/requisitos/RF01-backend/4.4.Autenticacao.md)
-    - [4.5. Foto de Perfil — GCS (Visão Arquitetural)](/docs/requisitos/RF03-backend/4.5.EdicaoPerfil.md)
-    - [4.6. Comentários e Reações em Relatos (RF12 / RF13)](/docs/requisitos/RF12-RF13-backend/4.6.ComentariosReacoes.md)
-    - [4.7. Denúncia e Moderação (Visão Arquitetural)](/docs/requisitos/RF-denuncia-backend/4.7.DenunciaModeracao.md)
-    - [4.8. Sincronização Google Places — Pirenópolis (Visão Arquitetural)](/docs/requisitos/RF-google-places-backend/4.8.SincronizacaoGooglePlaces.md)
-    - [4.3. Participações - Arquitetura & Reutilização de Software](/docs/ArquiteturaReutilizacao/4.3.ParticipacoesArqReutilizacao.md)
+
+
+- **Arquitetura & Reutilização de Software**
+
+    - [4.2. Reutilização de Software](/ArquiteturaReutilizacao/4.2.ReutilizacaoDeSoftware.md)
+
+    - [4.3. Participações](/ArquiteturaReutilizacao/4.3.ParticipacoesArqReutilizacao.md)
+
+    - [4.4. Iniciativas Extras](/ArquiteturaReutilizacao/4.4.IniciativasExtras.md)
+
+  - **Reutilização no Frontend**
+
+    - [RF01 — Autenticação](/requisitos/RF01-backend/4.4.Autenticacao.md)
+
+    - [RF03 — Perfil](/requisitos/rf03-perfil.md)
+
+    - [RF04 — Cadastro de local](/requisitos/rf04-cadastro-local.md)
+
+    - [RF07 — Edição de locais](/requisitos/rf07-edicao-locais.md)
+
+    - [RF08 — Edição de relatos](/requisitos/rf08-edicao-relatos.md)
+
+    - [RF11 — Denúncia e moderação](/requisitos/RF-denuncia-backend/4.7.DenunciaModeracao.md)
+
+    - [RF12/RF13 — Comentários e reações](/requisitos/RF12-RF13-backend/4.6.ComentariosReacoes.md)
+
+    - [RF15 — Google Places](/requisitos/RF-google-places-backend/4.8.SincronizacaoGooglePlaces.md)
+
+  - **Reutilização no Backend**
+
+    - [Visão geral](/ArquiteturaReutilizacao/backend/00.VisaoGeral.md)
+
+      - [Infraestrutura transversal](/ArquiteturaReutilizacao/backend/00.VisaoGeral.md#2-infraestrutura-transversal)
+
+    - [RF01 — Autenticação](/ArquiteturaReutilizacao/backend/02.Autenticacao.md)
+
+    - [RF03 — Perfil e GCS](/ArquiteturaReutilizacao/backend/03.PerfilArmazenamento.md)
+
+    - [RF12/RF13 — Comentários e reações](/ArquiteturaReutilizacao/backend/04.ComentariosReacoes.md)
+
+    - [RF11 — Denúncia e moderação](/ArquiteturaReutilizacao/backend/05.DenunciaModeracao.md)
+
+    - [RF15 — Google Places](/ArquiteturaReutilizacao/backend/06.SincronizacaoGooglePlaces.md)
+
+    - [RF04/RF07 — Locais Morador](/ArquiteturaReutilizacao/backend/07.LocaisMorador.md)
+
+    - [RF05/RF08/RF09 — Relatos](/ArquiteturaReutilizacao/backend/08.RelatosExperiencia.md)
+
+    - [RF06 — Consulta pública](/ArquiteturaReutilizacao/backend/09.ConsultaPublica.md)
+
+

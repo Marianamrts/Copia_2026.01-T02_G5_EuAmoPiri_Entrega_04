@@ -43,7 +43,7 @@ describe("experienceService validation", () => {
     });
 
     it("RNF02: rejeita blacklist", async () => {
-        const text = `${"a".repeat(90)} idiota ${"b".repeat(10)}`;
+        const text = "Lugar idiota demais. " + "a".repeat(79);
         await expect(
             validateExperienceInput(
                 1,

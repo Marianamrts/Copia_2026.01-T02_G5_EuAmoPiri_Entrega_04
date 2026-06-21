@@ -1,6 +1,6 @@
 import { Router } from "express";
 import * as authController from "../controllers/authController.ts";
-import { authMiddleware } from "../middleware/authMiddleware.ts";
+import { authMiddleware, authMiddlewareAllowDeletedUser } from "../middleware/authMiddleware.ts";
 import {
     profilePhotoUpload,
     handleProfilePhotoUploadError,
@@ -75,35 +75,6 @@ router.post("/register", authController.register);
  *               $ref: '#/components/schemas/UserNotFoundError'
  */
 router.post("/login", authController.login);
-
-/**
- * @openapi
- * /auth/google:
- *   post:
- *     tags: [Auth]
- *     summary: Login com Google OAuth
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/GoogleAuthRequest'
- *     responses:
- *       200:
- *         description: Autenticação Google bem-sucedida
- *         content:
- *           application/json:
- *             schema:
- *               allOf:
- *                 - $ref: '#/components/schemas/AuthResponse'
- *                 - type: object
- *                   properties:
- *                     isNewUser:
- *                       type: boolean
- *       401:
- *         description: Token Google inválido
- */
-router.post("/google", authController.googleLogin);
 
 /**
  * @openapi
@@ -223,5 +194,51 @@ router.get("/me/photo", authMiddleware, authController.getProfilePhoto);
  *         description: Não autenticado
  */
 router.get("/me/experiences", authMiddleware, authController.getMyExperiences);
+
+/**
+ * @openapi
+ * /auth/me:
+ *   delete:
+ *     tags: [Auth]
+ *     summary: Excluir conta do usuário autenticado
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       204:
+ *         description: Conta excluída com sucesso
+ *       401:
+ *         description: Não autenticado
+ *       404:
+ *         description: Usuário não encontrado
+ */
+router.delete("/me", authMiddlewareAllowDeletedUser, authController.deleteMyAccount);
+
+/**
+ * @openapi
+ * /auth/users/{id}:
+ *   delete:
+ *     tags: [Auth]
+ *     summary: Excluir conta por ID (admin ou dono)
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       204:
+ *         description: Conta excluída com sucesso
+ *       400:
+ *         description: ID inválido
+ *       401:
+ *         description: Não autenticado
+ *       403:
+ *         description: Acesso negado
+ *       404:
+ *         description: Usuário não encontrado
+ */
+router.delete("/users/:id", authMiddlewareAllowDeletedUser, authController.deleteUserById);
 
 export default router;

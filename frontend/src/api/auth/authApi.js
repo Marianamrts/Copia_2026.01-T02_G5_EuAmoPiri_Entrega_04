@@ -10,11 +10,6 @@ export async function postLogin(email, password) {
   return data;
 }
 
-export async function postGoogle(credential) {
-  const { data } = await apiClient.post('/auth/google', { credential });
-  return data;
-}
-
 export async function postRegister(payload) {
   const { data } = await apiClient.post('/auth/register', payload);
   return data;

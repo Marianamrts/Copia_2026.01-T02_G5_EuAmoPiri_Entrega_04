@@ -53,17 +53,6 @@ export async function login({ email, password }) {
   }
 }
 
-export async function loginWithGoogle(credential) {
-  try {
-    const data = await authApi.postGoogle(credential);
-    const user = mapApiUserToFrontend(data.user);
-    persistSession({ user, token: data.token });
-    return { user, token: data.token, isNewUser: data.isNewUser };
-  } catch (error) {
-    throw new Error(extractErrorMessage(error));
-  }
-}
-
 export async function register(input) {
   try {
     const data = await authApi.postRegister(mapRegisterToApi(input));

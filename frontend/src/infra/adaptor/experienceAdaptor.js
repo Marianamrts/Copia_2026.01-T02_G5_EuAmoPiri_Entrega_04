@@ -4,6 +4,7 @@
 import apiClient, { postFormData, patchFormData } from '../../api/client';
 import { fetchPlaces } from './placeAdaptor';
 import { resolveMediaUrl } from '../../utils/mediaUrl';
+import { invalidatePlacesCatalog } from '../placesCatalogCache';
 
 function mapExperience(exp) {
   return {
@@ -103,7 +104,9 @@ function diffDays(isoDate) {
 export async function fetchMyExperiences() {
   try {
     const { data } = await apiClient.get('/auth/me/experiences');
-    return Array.isArray(data) ? data : [];
+    return Array.isArray(data)
+      ? data.map((e) => ({ ...e, dias: e.dias ?? diffDays(e.createdAt) }))
+      : [];
   } catch {
     return MOCK_EXPERIENCES
       .filter((e) => e.userId === 'current')
@@ -138,6 +141,7 @@ export async function createExperience(placeId, experienceData, photoFiles = [])
   });
 
   const data = await postFormData(`/places/${placeId}/experiences`, formData);
+  invalidatePlacesCatalog();
   return mapExperience(data);
 }
 
@@ -153,16 +157,13 @@ export async function updateExperience(placeId, experienceId, experienceData, ph
     `/places/${placeId}/experiences/${experienceId}`,
     formData
   );
+  invalidatePlacesCatalog();
   return mapExperience(data);
 }
 
 export async function deleteExperience(placeId, experienceId) {
-  try {
-    await apiClient.delete(`/places/${placeId}/experiences/${experienceId}`);
-  } catch {
-    const idx = MOCK_EXPERIENCES.findIndex((e) => String(e.id) === String(experienceId));
-    if (idx !== -1) MOCK_EXPERIENCES.splice(idx, 1);
-  }
+  await apiClient.delete(`/places/${placeId}/experiences/${experienceId}`);
+  invalidatePlacesCatalog();
   return { success: true };
 }
 

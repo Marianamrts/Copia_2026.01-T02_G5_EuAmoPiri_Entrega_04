@@ -41,30 +41,52 @@ function useHorizontalDragScroll(draggingClass) {
     if (!el) return;
 
     let isDragging = false;
+    let dragPending = false;
     let startX = 0;
     let scrollStart = 0;
+    let activePointerId = null;
+
+    function isInteractiveTarget(target) {
+      return Boolean(
+        target.closest('a, button, input, select, textarea, label, [role="button"]')
+      );
+    }
 
     function onPointerDown(e) {
       if (e.pointerType === 'mouse' && e.button !== 0) return;
-      isDragging = true;
+      if (isInteractiveTarget(e.target)) return;
+
+      dragPending = true;
+      activePointerId = e.pointerId;
       startX = e.clientX;
       scrollStart = el.scrollLeft;
-      el.setPointerCapture?.(e.pointerId);
-      el.classList.add(draggingClass);
     }
 
     function endDrag(e) {
+      dragPending = false;
       if (!isDragging) return;
       isDragging = false;
       el.classList.remove(draggingClass);
       if (el.hasPointerCapture?.(e.pointerId)) {
         el.releasePointerCapture(e.pointerId);
       }
+      activePointerId = null;
     }
 
     function onPointerMove(e) {
-      if (!isDragging) return;
-      el.scrollLeft = scrollStart - (e.clientX - startX);
+      if (!dragPending && !isDragging) return;
+      if (activePointerId != null && e.pointerId !== activePointerId) return;
+
+      const dx = e.clientX - startX;
+      if (!isDragging) {
+        if (Math.abs(dx) < 6) return;
+        isDragging = true;
+        dragPending = false;
+        el.setPointerCapture?.(e.pointerId);
+        el.classList.add(draggingClass);
+      }
+
+      el.scrollLeft = scrollStart - dx;
     }
 
     el.addEventListener('pointerdown', onPointerDown);
@@ -393,6 +415,10 @@ function TuristaSections({ onCountChange }) {
   }
 
   async function handleDeleteAvaliacao() {
+    if (!toDelete) {
+      setDeleteErr('Relato não encontrado.');
+      return;
+    }
     setDeleting(true);
     setDeleteErr(null);
     try {
@@ -426,7 +452,10 @@ function TuristaSections({ onCountChange }) {
               <StarRating value={a.rating} readonly size="sm" />
               {a.title && <p className={styles.avaliacaoTitulo}>{a.title}</p>}
               <p className={styles.avaliacaoTexto}>"{a.text}"</p>
-              <div className={styles.relatoActions}>
+              <div
+                className={styles.relatoActions}
+                onPointerDown={(e) => e.stopPropagation()}
+              >
                 <Button
                   variant="secondary"
                   size="sm"

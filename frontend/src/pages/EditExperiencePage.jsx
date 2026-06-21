@@ -30,7 +30,7 @@ export default function EditExperiencePage() {
       return;
     }
 
-    fetchMyExperiences(user.id)
+    fetchMyExperiences()
       .then((exps) => {
         const found = exps.find(
           (e) => String(e.id) === String(id) && String(e.placeId) === String(placeId)

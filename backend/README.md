@@ -22,10 +22,14 @@ Este documento explica tudo o que outro desenvolvedor precisa saber para clonar 
 | **Node.js** | Runtime JavaScript |
 | **TypeScript** | Tipagem estática |
 | **Express 5** | Servidor HTTP e rotas |
+| **Passport.js** | Autenticação JWT (local + bearer) |
+| **Swagger** | Documentação interativa da API (`/api-docs`) |
 | **Prisma 7** | ORM e migrations do banco |
 | **PostgreSQL** | Banco de dados relacional |
 | **Docker** | Sobe o PostgreSQL local de forma padronizada (desenvolvimento) |
 | **Supabase** | PostgreSQL na nuvem (banco de produção) |
+| **@google-cloud/storage** | Fotos de perfil no GCS (bucket privado) |
+| **multer** | Upload multipart em memória (`PATCH /auth/me`) |
 | **tsx** | Executa TypeScript em desenvolvimento |
 
 ---
@@ -566,24 +570,39 @@ Requisição HTTP
 ```
 backend/
 ├── prisma/
-│   ├── schema.prisma          # definição dos models (Place, Experiences)
-│   └── migrations/            # histórico de alterações do banco (versionado)
-├── generated/prisma/          # cliente Prisma gerado (NÃO versionado — rode prisma generate)
+│   ├── schema.prisma          # Place, Experiences, User
+│   └── migrations/
+├── generated/prisma/          # cliente Prisma gerado (NÃO versionado)
 ├── src/
 │   ├── config/
-│   │   └── prisma.ts          # instância única do PrismaClient
+│   │   ├── prisma.ts
+│   │   ├── passport.ts        # Facade Passport (local + jwt)
+│   │   └── swagger.ts         # OpenAPI spec
+│   ├── services/
+│   │   ├── authService.ts
+│   │   ├── profileService.ts
+│   │   └── storageService.ts
 │   ├── model/
-│   │   ├── placeModel.ts      # operações de banco: locais
-│   │   └── experienceModel.ts # operações de banco: experiências
+│   │   ├── placeModel.ts
+│   │   ├── experienceModel.ts
+│   │   └── userModel.ts
 │   ├── views/
-│   │   ├── placeView.ts       # formata JSON de locais
-│   │   └── experienceView.ts  # formata JSON de experiências
+│   │   ├── placeView.ts
+│   │   ├── experienceView.ts
+│   │   └── userView.ts
 │   ├── controllers/
 │   │   ├── placeController.ts
-│   │   └── experienceController.ts
+│   │   ├── experienceController.ts
+│   │   └── authController.ts
 │   ├── routes/
+│   │   ├── authRoutes.ts
 │   │   ├── placeRoutes.ts
 │   │   └── experienceRoutes.ts
+│   ├── middleware/
+│   │   └── authMiddleware.ts
+│   ├── utils/
+│   │   ├── jwt.ts
+│   │   └── password.ts
 │   └── server.ts              # ponto de entrada (bootstrap)
 ├── .env.example               # modelo para desenvolvimento (Docker)
 ├── .env                       # credenciais locais — Docker (não versionado)
@@ -627,8 +646,25 @@ Definidos em `prisma/schema.prisma`:
 |-------|------|-----------|
 | `id` | Int | Chave primária (auto) |
 | `userName` | String | Nome de quem compartilhou |
+| `userId` | Int? | FK para User (preenchido quando autenticado) |
 | `rating` | Int | Avaliação de 0 a 5 |
 | `placeId` | Int | FK para Place |
+| `createdAt` | DateTime | Data de criação (automática) |
+
+### User (usuário)
+
+| Campo | Tipo | Descrição |
+|-------|------|-----------|
+| `id` | Int | Chave primária (auto) |
+| `accountType` | AccountType? | `TURISTA` ou `MORADOR` |
+| `name` | String | Nome completo |
+| `email` | String | Email único |
+| `birthDate` | DateTime? | Data de nascimento |
+| `phone` | String? | Telefone |
+| `profession` | String? | Profissão |
+| `biography` | String? | Biografia |
+| `profilePhotoUrl` | String? | Chave do objeto no GCS (ex.: `profile_photo/1-1718650000.jpg`) |
+| `passwordHash` | String? | Hash bcrypt |
 | `createdAt` | DateTime | Data de criação (automática) |
 
 ---
@@ -642,6 +678,50 @@ Base URL: `http://localhost:3000`
 | Método | Rota | Descrição |
 |--------|------|-----------|
 | `GET` | `/` | Verifica se a API está online |
+| `GET` | `/api-docs` | Documentação Swagger (UI interativa) |
+
+### Autenticação (Auth)
+
+Documentação arquitetural completa (bibliotecas, padrões Facade/Strategy, ADRs): [`docs/requisitos/RF01-backend/4.4.Autenticacao.md`](../docs/requisitos/RF01-backend/4.4.Autenticacao.md)
+
+| Método | Rota | Auth | Descrição |
+|--------|------|------|-----------|
+| `POST` | `/auth/register` | Não | Cadastro (nome, email, senha, etc.) |
+| `POST` | `/auth/login` | Não | Login email/senha → JWT |
+| `GET` | `/auth/me` | Bearer JWT | Dados do usuário logado |
+| `PATCH` | `/auth/me` | Bearer JWT | Atualiza perfil (multipart; campo `profilePhoto` opcional) |
+| `GET` | `/auth/me/photo` | Bearer JWT | Stream da foto de perfil (proxy GCS) |
+
+Documentação arquitetural da foto de perfil: [`docs/requisitos/RF-edit-perfil/4.5.FotoPerfilGCS.md`](../docs/requisitos/RF-edit-perfil/4.5.FotoPerfilGCS.md)
+
+**Exemplo — cadastro:**
+
+```bash
+curl -X POST http://localhost:3000/auth/register \
+  -H "Content-Type: application/json" \
+  -d "{\"accountType\":\"TURISTA\",\"name\":\"Maria Silva\",\"email\":\"maria@test.com\",\"birthDate\":\"1995-03-15\",\"phone\":\"(62) 99999-9999\",\"password\":\"SenhaForte1\",\"confirmPassword\":\"SenhaForte1\"}"
+```
+
+**Exemplo — login:**
+
+```bash
+curl -X POST http://localhost:3000/auth/login \
+  -H "Content-Type: application/json" \
+  -d "{\"email\":\"maria@test.com\",\"password\":\"SenhaForte1\"}"
+```
+
+**Exemplo — usuário logado:**
+
+```bash
+curl http://localhost:3000/auth/me \
+  -H "Authorization: Bearer SEU_TOKEN_JWT"
+```
+
+Resposta de conta inexistente no login (`404`):
+
+```json
+{ "error": "Conta não encontrada", "code": "USER_NOT_FOUND" }
+```
 
 ### Locais (Places)
 
@@ -675,14 +755,15 @@ Invoke-RestMethod -Uri "http://localhost:3000/places" -Method GET
 | Método | Rota | Descrição |
 |--------|------|-----------|
 | `GET` | `/places/:placeId/experiences` | Lista experiências de um local |
-| `POST` | `/places/:placeId/experiences` | Cadastra experiência em um local |
+| `POST` | `/places/:placeId/experiences` | Cadastra experiência (**requer JWT**) |
 
-**Exemplo — criar experiência, placeId = 1 (PowerShell):**
+**Exemplo — criar experiência autenticada, placeId = 1 (PowerShell):**
 
 ```powershell
-$body = @{ userName = "Maria"; rating = 5 } | ConvertTo-Json
+$headers = @{ Authorization = "Bearer SEU_TOKEN_JWT" }
+$body = @{ rating = 5 } | ConvertTo-Json
 
-Invoke-RestMethod -Uri "http://localhost:3000/places/1/experiences" -Method POST -Body $body -ContentType "application/json"
+Invoke-RestMethod -Uri "http://localhost:3000/places/1/experiences" -Method POST -Body $body -ContentType "application/json" -Headers $headers
 ```
 
 **Exemplo — listar experiências de um local (PowerShell):**
@@ -690,6 +771,75 @@ Invoke-RestMethod -Uri "http://localhost:3000/places/1/experiences" -Method POST
 ```powershell
 Invoke-RestMethod -Uri "http://localhost:3000/places/1/experiences" -Method GET
 ```
+
+---
+
+## Frontend de teste
+
+Pasta `frontend/` na raiz do repositório — interface para validar login, cadastro e rotas protegidas.
+
+O módulo de auth no frontend fica em `src/api/auth/` (SRP: `authApi`, `authMapper`, `authSessionStorage`, `authFacade`) com HTTP global em `src/api/client.js`. Ver `frontend/README.md` e [`4.5.FotoPerfilGCS.md`](../docs/requisitos/RF-edit-perfil/4.5.FotoPerfilGCS.md).
+
+```bash
+cd frontend
+cp .env.example .env
+npm install
+npm run dev
+```
+
+Acesse `http://localhost:5173`.
+
+Variáveis adicionais no `.env` do backend:
+
+```env
+JWT_SECRET=sua-chave-secreta
+JWT_EXPIRES_IN=7d
+CORS_ORIGIN=http://localhost:5173
+```
+
+Após alterar o schema, aplique a migration de autenticação:
+
+```bash
+npx prisma migrate deploy
+```
+
+---
+
+## Google Cloud Storage — fotos de perfil (desenvolvimento local)
+
+1. Obtenha o JSON da service account com a equipe (canal seguro).
+2. Salve em `backend/secrets/` (pasta no `.gitignore`).
+3. Configure no `.env`:
+
+```env
+GCS_BUCKET_NAME=profile_photo_euamopiri
+GCS_PROJECT_ID=euamopiri
+GCS_PROFILE_PREFIX=profile_photo/
+GOOGLE_APPLICATION_CREDENTIALS=./secrets/seu-arquivo.json
+```
+
+4. Teste via frontend em `/login` (ou `/teste-auth` em dev) → `/perfil` → editar foto.
+
+O bucket é **privado**. A API expõe a foto via `GET /auth/me/photo` (JWT). Não use `express.static('/uploads')`.
+
+---
+
+## Deploy no Render — fase 2 (GCS + API)
+
+Quando a API for publicada no Render, além de `DATABASE_URL`, configure:
+
+| Variável | Descrição |
+|----------|-----------|
+| `GCS_CREDENTIALS_JSON` | Conteúdo completo do JSON da service account (string) |
+| `GCS_BUCKET_NAME` | Nome do bucket |
+| `GCS_PROJECT_ID` | Project ID GCP |
+| `GCS_PROFILE_PREFIX` | Prefixo das chaves (ex.: `profile_photo/`) |
+| `JWT_SECRET` | Segredo JWT de produção |
+| `CORS_ORIGIN` | URL do frontend em produção |
+
+No frontend (Render ou estático), defina `VITE_API_URL` com a URL pública da API (ex.: `https://sua-api.onrender.com`). Em desenvolvimento, o proxy Vite `/api` → `localhost:3000` dispensa essa variável.
+
+O `storageService` usa `GCS_CREDENTIALS_JSON` quando presente; caso contrário, `GOOGLE_APPLICATION_CREDENTIALS` (arquivo local).
 
 ---
 

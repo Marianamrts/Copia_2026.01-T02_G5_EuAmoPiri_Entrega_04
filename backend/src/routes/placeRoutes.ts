@@ -70,6 +70,39 @@ router.get("/", placeController.listPlaces);
 
 /**
  * @openapi
+ * /places/gmaps:
+ *   get:
+ *     tags: [Places]
+ *     summary: Catálogo de locais de Pirenópolis via Google Places API
+ *     description: |
+ *       Retorna locais importados do Google Maps, categorizados como cachoeira,
+ *       restaurante ou pousada. Resposta cacheada em memória no backend.
+ *     responses:
+ *       200:
+ *         description: Lista de locais do Google Maps
+ */
+router.get("/gmaps", placeController.listGooglePlaces);
+
+/**
+ * @openapi
+ * /places/gmaps/sync:
+ *   post:
+ *     tags: [Places]
+ *     summary: Sincronizar top locais Google no banco (admin/dev)
+ */
+router.post("/gmaps/sync", placeController.syncGooglePlaces);
+
+/**
+ * @openapi
+ * /places/gmaps/{googlePlaceId}:
+ *   get:
+ *     tags: [Places]
+ *     summary: Detalhe de local extra do catálogo Google (somente leitura)
+ */
+router.get("/gmaps/:googlePlaceId", placeController.getGoogleCatalogPlace);
+
+/**
+ * @openapi
  * /places/{id}:
  *   get:
  *     tags: [Places]
